@@ -4,7 +4,7 @@ import (
 	"fmt"
 )
 
-// NativeFunctionCall represents a call to a built-in function.
+// NativeFunctionCall represents a call to built-in function.
 type NativeFunctionCall struct {
 	*BaseRuntimeObject
 	Name               string
@@ -50,7 +50,7 @@ func NewNativeFunctionCall(name string) *NativeFunctionCall {
 	return nf
 }
 
-// NativeFunctionCallNumberOfParameters returns the number of parameters for a given native function name.
+// NativeFunctionCallNumberOfParameters returns the number of parameters.
 func NativeFunctionCallNumberOfParameters(name string) int {
 	switch name {
 	case NativeFunctionCallAdd, NativeFunctionCallSubtract, NativeFunctionCallMultiply, NativeFunctionCallDivide, NativeFunctionCallMod,
@@ -64,7 +64,7 @@ func NativeFunctionCallNumberOfParameters(name string) int {
 	return 0
 }
 
-// Call executes the native function with the given parameters.
+// Call executes the native function.
 func (n *NativeFunctionCall) Call(parameters []RuntimeObject) (RuntimeObject, error) {
 	if len(parameters) != n.NumberOfParameters {
 		return nil, fmt.Errorf("unexpected number of parameters")
@@ -111,7 +111,6 @@ func (n *NativeFunctionCall) Call(parameters []RuntimeObject) (RuntimeObject, er
 		}
 		return nil, fmt.Errorf("cannot check Hasnt on %T and %T", parameters[0], parameters[1])
 	}
-	// TODO: Implement other operations
 	return nil, fmt.Errorf("operation not implemented: %s", n.Name)
 }
 
@@ -121,158 +120,94 @@ func (n *NativeFunctionCall) coerceValues(v1, v2 RuntimeObject) (Value, Value, e
 	if !ok1 || !ok2 {
 		return nil, nil, fmt.Errorf("operands are not values")
 	}
-	// TODO: Better type coercion (e.g. Int -> Float if one is Float)
 	return val1, val2, nil
 }
 
+func (n *NativeFunctionCall) coerceToString(v RuntimeObject) string {
+	if s, ok := v.(*StringValue); ok {
+		return s.Value
+	}
+	if i, ok := v.(*IntValue); ok {
+		return fmt.Sprintf("%d", i.Value)
+	}
+	if f, ok := v.(*FloatValue); ok {
+		return fmt.Sprintf("%v", f.Value)
+	}
+	return ""
+}
+
+func (n *NativeFunctionCall) performBinaryNumericOp(v1, v2 RuntimeObject, intOp func(int, int) int, floatOp func(float64, float64) float64) (RuntimeObject, error) {
+	val1, val2, err := n.coerceValues(v1, v2)
+	if err != nil {
+		return nil, err
+	}
+
+	i1, isInt1 := val1.(*IntValue)
+	i2, isInt2 := val2.(*IntValue)
+
+	if isInt1 && isInt2 {
+		return NewIntValue(intOp(i1.Value, i2.Value)), nil
+	}
+
+	f1, isFloat1 := val1.(*FloatValue)
+	f2, isFloat2 := val2.(*FloatValue)
+
+	if isFloat1 && isFloat2 {
+		return NewFloatValue(floatOp(f1.Value, f2.Value)), nil
+	}
+	if isInt1 && isFloat2 {
+		return NewFloatValue(floatOp(float64(i1.Value), f2.Value)), nil
+	}
+	if isFloat1 && isInt2 {
+		return NewFloatValue(floatOp(f1.Value, float64(i2.Value))), nil
+	}
+
+	return nil, fmt.Errorf("cannot perform operation on %T and %T", v1, v2)
+}
+
 func (n *NativeFunctionCall) add(v1, v2 RuntimeObject) (RuntimeObject, error) {
-	// Special Case: String concatenation
-	// If either is string, convert both to string
-	s1, isStr1 := v1.(*StringValue)
-	s2, isStr2 := v2.(*StringValue)
+	_, isStr1 := v1.(*StringValue)
+	_, isStr2 := v2.(*StringValue)
 
 	if isStr1 || isStr2 {
-		str1 := ""
-		str2 := ""
-		if isStr1 {
-			str1 = s1.Value
-		} else {
-			str1 = fmt.Sprintf("%v", v1)
-		} // Simplified stringify
-		if isStr2 {
-			str2 = s2.Value
-		} else {
-			str2 = fmt.Sprintf("%v", v2)
-		}
-
-		// In full Ink, non-string values need proper string representation (IntValue.ToString, etc)
-		// For now, assuming basic values work with Sprintf, or we rely on Values implementing String()
-
-		// Wait, Values should have String() ?
-		// If v1 is IntValue, we can cast.
-
-		if !isStr1 {
-			if i, ok := v1.(*IntValue); ok {
-				str1 = fmt.Sprintf("%d", i.Value)
-			} else if f, ok := v1.(*FloatValue); ok {
-				str1 = fmt.Sprintf("%v", f.Value) // %v avoids trailing zeros sometimes better than %f
-			} else {
-				// Fallback
-				str1 = "" // or panic/error?
-			}
-		}
-		if !isStr2 {
-			if i, ok := v2.(*IntValue); ok {
-				str2 = fmt.Sprintf("%d", i.Value)
-			} else if f, ok := v2.(*FloatValue); ok {
-				str2 = fmt.Sprintf("%v", f.Value)
-			} else {
-				str2 = ""
-			}
-		}
-
+		str1 := n.coerceToString(v1)
+		str2 := n.coerceToString(v2)
 		return NewStringValue(str1 + str2), nil
 	}
 
-	// List Addition (Union)
 	l1, isList1 := v1.(*ListValue)
 	l2, isList2 := v2.(*ListValue)
 	if isList1 && isList2 {
 		return NewListValue(l1.Value.Union(l2.Value)), nil
 	}
 
-	// Numeric Addition
-	val1, val2, err := n.coerceValues(v1, v2)
-	if err != nil {
-		return nil, err
-	}
+	return n.addNumbers(v1, v2)
+}
 
-	i1, isInt1 := val1.(*IntValue)
-	i2, isInt2 := val2.(*IntValue)
-
-	if isInt1 && isInt2 {
-		return NewIntValue(i1.Value + i2.Value), nil
-	}
-
-	f1, isFloat1 := val1.(*FloatValue)
-	f2, isFloat2 := val2.(*FloatValue)
-
-	if isFloat1 && isFloat2 {
-		return NewFloatValue(f1.Value + f2.Value), nil
-	}
-	if isInt1 && isFloat2 {
-		return NewFloatValue(float64(i1.Value) + f2.Value), nil
-	}
-	if isFloat1 && isInt2 {
-		return NewFloatValue(f1.Value + float64(i2.Value)), nil
-	}
-
-	return nil, fmt.Errorf("cannot add %T and %T", v1, v2)
+func (n *NativeFunctionCall) addNumbers(v1, v2 RuntimeObject) (RuntimeObject, error) {
+	return n.performBinaryNumericOp(v1, v2,
+		func(a, b int) int { return a + b },
+		func(a, b float64) float64 { return a + b },
+	)
 }
 
 func (n *NativeFunctionCall) subtract(v1, v2 RuntimeObject) (RuntimeObject, error) {
-	// List Subtraction
 	l1, isList1 := v1.(*ListValue)
 	l2, isList2 := v2.(*ListValue)
 	if isList1 && isList2 {
 		return NewListValue(l1.Value.Subtract(l2.Value)), nil
 	}
-
-	val1, val2, err := n.coerceValues(v1, v2)
-	if err != nil {
-		return nil, err
-	}
-
-	i1, isInt1 := val1.(*IntValue)
-	i2, isInt2 := val2.(*IntValue)
-
-	if isInt1 && isInt2 {
-		return NewIntValue(i1.Value - i2.Value), nil
-	}
-
-	f1, isFloat1 := val1.(*FloatValue)
-	f2, isFloat2 := val2.(*FloatValue)
-
-	if isFloat1 && isFloat2 {
-		return NewFloatValue(f1.Value - f2.Value), nil
-	}
-	if isInt1 && isFloat2 {
-		return NewFloatValue(float64(i1.Value) - f2.Value), nil
-	}
-	if isFloat1 && isInt2 {
-		return NewFloatValue(f1.Value - float64(i2.Value)), nil
-	}
-
-	return nil, fmt.Errorf("cannot subtract %T and %T", v1, v2)
+	return n.performBinaryNumericOp(v1, v2,
+		func(a, b int) int { return a - b },
+		func(a, b float64) float64 { return a - b },
+	)
 }
 
 func (n *NativeFunctionCall) multiply(v1, v2 RuntimeObject) (RuntimeObject, error) {
-	val1, val2, err := n.coerceValues(v1, v2)
-	if err != nil {
-		return nil, err
-	}
-
-	i1, isInt1 := val1.(*IntValue)
-	i2, isInt2 := val2.(*IntValue)
-
-	if isInt1 && isInt2 {
-		return NewIntValue(i1.Value * i2.Value), nil
-	}
-
-	f1, isFloat1 := val1.(*FloatValue)
-	f2, isFloat2 := val2.(*FloatValue)
-
-	if isFloat1 && isFloat2 {
-		return NewFloatValue(f1.Value * f2.Value), nil
-	}
-	if isInt1 && isFloat2 {
-		return NewFloatValue(float64(i1.Value) * f2.Value), nil
-	}
-	if isFloat1 && isInt2 {
-		return NewFloatValue(f1.Value * float64(i2.Value)), nil
-	}
-
-	return nil, fmt.Errorf("cannot multiply %T and %T", v1, v2)
+	return n.performBinaryNumericOp(v1, v2,
+		func(a, b int) int { return a * b },
+		func(a, b float64) float64 { return a * b },
+	)
 }
 
 func (n *NativeFunctionCall) divide(v1, v2 RuntimeObject) (RuntimeObject, error) {
@@ -288,13 +223,12 @@ func (n *NativeFunctionCall) divide(v1, v2 RuntimeObject) (RuntimeObject, error)
 		if i2.Value == 0 {
 			return nil, fmt.Errorf("division by zero")
 		}
-		return NewIntValue(i1.Value / i2.Value), nil // Floor division
+		return NewIntValue(i1.Value / i2.Value), nil
 	}
 
 	f1, isFloat1 := val1.(*FloatValue)
 	f2, isFloat2 := val2.(*FloatValue)
 
-	// Promote to float
 	v1Val := float64(0)
 	v2Val := float64(0)
 	if isInt1 {
@@ -329,65 +263,62 @@ func (n *NativeFunctionCall) mod(v1, v2 RuntimeObject) (RuntimeObject, error) {
 		}
 		return NewIntValue(i1.Value % i2.Value), nil
 	}
-	return nil, fmt.Errorf("modulo only supported for ints")
+	return nil, fmt.Errorf("modulo not supported for non-integers")
+}
+
+func (n *NativeFunctionCall) equalNumbers(v1, v2 RuntimeObject) (int, bool) {
+	i1, isInt1 := v1.(*IntValue)
+	i2, isInt2 := v2.(*IntValue)
+	if isInt1 && isInt2 {
+		if i1.Value == i2.Value {
+			return 1, true
+		}
+		return 0, true
+	}
+
+	f1, isFloat1 := v1.(*FloatValue)
+	f2, isFloat2 := v2.(*FloatValue)
+	if isFloat1 && isFloat2 {
+		if f1.Value == f2.Value {
+			return 1, true
+		}
+		return 0, true
+	}
+
+	if isInt1 && isFloat2 {
+		if float64(i1.Value) == f2.Value {
+			return 1, true
+		}
+		return 0, true
+	}
+	if isFloat1 && isInt2 {
+		if f1.Value == float64(i2.Value) {
+			return 1, true
+		}
+		return 0, true
+	}
+	return 0, false
 }
 
 func (n *NativeFunctionCall) equal(v1, v2 RuntimeObject) (RuntimeObject, error) {
-	// Null logic
 	if v1 == nil && v2 == nil {
 		return NewIntValue(1), nil
-	} // true
+	}
 	if v1 == nil || v2 == nil {
 		return NewIntValue(0), nil
-	} // false
+	}
 
 	val1, ok1 := v1.(Value)
 	val2, ok2 := v2.(Value)
 
 	if !ok1 || !ok2 {
 		return NewIntValue(0), nil
-	} // Comparison of different object types?
-
-	// Types must match? Ink allows 5 == 5.0 -> True
-	// TODO: Full equality logic
-
-	// Simple int/float check
-	i1, isInt1 := val1.(*IntValue)
-	i2, isInt2 := val2.(*IntValue)
-	if isInt1 && isInt2 {
-		if i1.Value == i2.Value {
-			return NewIntValue(1), nil
-		}
-		return NewIntValue(0), nil
 	}
 
-	f1, isFloat1 := val1.(*FloatValue)
-	f2, isFloat2 := val2.(*FloatValue)
-
-	if isFloat1 && isFloat2 {
-		// Use epsilon? For now direct equality
-		if f1.Value == f2.Value {
-			return NewIntValue(1), nil
-		}
-		return NewIntValue(0), nil
+	if eq, ok := n.equalNumbers(val1, val2); ok {
+		return NewIntValue(eq), nil
 	}
 
-	// Mixed Int/Float
-	if isInt1 && isFloat2 {
-		if float64(i1.Value) == f2.Value {
-			return NewIntValue(1), nil
-		}
-		return NewIntValue(0), nil
-	}
-
-	if isFloat1 && isInt2 {
-		if f1.Value == float64(i2.Value) {
-			return NewIntValue(1), nil
-		}
-		return NewIntValue(0), nil
-	}
-
-	// String Equality
 	s1, isStr1 := val1.(*StringValue)
 	s2, isStr2 := val2.(*StringValue)
 	if isStr1 && isStr2 {
@@ -397,9 +328,7 @@ func (n *NativeFunctionCall) equal(v1, v2 RuntimeObject) (RuntimeObject, error) 
 		return NewIntValue(0), nil
 	}
 
-	// TODO: DivertTarget, etc
-
-	return NewIntValue(0), nil // Default false
+	return NewIntValue(0), nil
 }
 
 func (n *NativeFunctionCall) greater(v1, v2 RuntimeObject) (RuntimeObject, error) {
@@ -417,8 +346,6 @@ func (n *NativeFunctionCall) greater(v1, v2 RuntimeObject) (RuntimeObject, error
 		}
 		return NewIntValue(0), nil
 	}
-
-	// Float etc
 	return NewIntValue(0), nil
 }
 
@@ -443,20 +370,10 @@ func (n *NativeFunctionCall) less(v1, v2 RuntimeObject) (RuntimeObject, error) {
 func (n *NativeFunctionCall) not(v1 RuntimeObject) (RuntimeObject, error) {
 	val, ok := v1.(Value)
 	if !ok {
-		return nil, fmt.Errorf("not a value")
+		return nil, fmt.Errorf("operand is not a value")
 	}
-
-	if i, ok := val.(*IntValue); ok {
-		if i.Value == 0 {
-			return NewIntValue(1), nil
-		}
+	if val.IsTruthy() {
 		return NewIntValue(0), nil
 	}
-
-	// Default truthy check
-	// Ink logic: 0 is false, everything else true?
-	// Actually IsTruthy is on Value interface.
-
-	// TODO: Use IsTruthy
-	return NewIntValue(0), nil
+	return NewIntValue(1), nil
 }

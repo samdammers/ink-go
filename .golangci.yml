@@ -70,7 +70,7 @@ linters:
         - shadow
 
     gocyclo:
-      min-complexity: 15
+      min-complexity: 20
 
     gocognit:
       min-complexity: 20

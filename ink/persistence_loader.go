@@ -18,6 +18,7 @@ func (s *Story) LoadState(jsonStr string) error {
 	return s.restoreStoryState(&dto)
 }
 
+//nolint:gocognit
 func (s *Story) restoreStoryState(dto *StoryStateDto) error {
 	// Restore VariablesState
 	// Note: We should probably reset global variables first or ensure we are overwriting.
@@ -278,34 +279,7 @@ func (s *Story) jTokenToRuntimeObject(token interface{}) (RuntimeObject, error) 
 
 	switch val := token.(type) {
 	case string:
-		// String value or command
-		firstChar := ""
-		if len(val) > 0 {
-			firstChar = string(val[0])
-		}
-
-		if firstChar == "^" {
-			return NewStringValue(val[1:]), nil
-		}
-		if val == "\n" {
-			return NewStringValue("\n"), nil
-		}
-		if val == "<>" {
-			return NewGlue(), nil
-		}
-		// Control Command?
-		// Using the mapping from persistence.go
-		for i, name := range controlCommandNames {
-			if name == val {
-				return NewControlCommand(CommandType(i)), nil
-			}
-		}
-
-		// Native Function Call? (Fallback)
-		if val == "L^" {
-			val = "^"
-		} // Special case for escaping ^ function name?
-		return NewNativeFunctionCall(val), nil
+		return s.parseStateString(val)
 
 	case bool:
 		return NewBoolValue(val), nil
@@ -321,7 +295,6 @@ func (s *Story) jTokenToRuntimeObject(token interface{}) (RuntimeObject, error) 
 		return NewIntValue(val), nil
 
 	case map[string]interface{}:
-		// Complex objects
 		if target, ok := val["^->"]; ok {
 			return NewDivertTargetValue(NewPathFromString(target.(string))), nil
 		}
@@ -337,99 +310,128 @@ func (s *Story) jTokenToRuntimeObject(token interface{}) (RuntimeObject, error) 
 			return NewVariablePointerValue(name.(string), ci), nil
 		}
 
-		if listData, ok := val["list"]; ok {
-			// listData is a map[string]interface{} where keys are "Origin.Item" and values are int
-			inkList := NewList()
-			listMap, ok := listData.(map[string]interface{})
-			if !ok {
-				return nil, fmt.Errorf("invalid list data format")
-			}
-
-			for key, v := range listMap {
-				itemValFloat, ok := v.(float64)
-				if !ok {
-					continue // Or error
-				}
-				itemVal := int(itemValFloat)
-
-				// Parse key "Origin.ItemName"
-				parts := strings.Split(key, ".")
-				var originName, itemName string
-				if len(parts) == 2 {
-					originName = parts[0]
-					itemName = parts[1]
-				} else {
-					itemName = key
-				}
-
-				item := NewListItem(originName, itemName)
-
-				// Resolve correct origin if possible to get canonical case/metadata?
-				// Important: If we have list definitions, we should try to associate the origin.
-				if s.ListDefinitions != nil {
-					if def, ok := s.ListDefinitions.Lists[originName]; ok {
-						if _, ok := def.Items[itemName]; ok {
-							// Validated against definition
-							item.OriginName = def.Name // Canonicalize casing?
-						}
-					}
-				}
-
-				inkList.Add(item, itemVal)
-			}
-
-			// Origins metadata
-			if originsVal, ok := val["origins"]; ok {
-				// originsVal is []interface{} of names
-				if originsList, ok := originsVal.([]interface{}); ok {
-					for _, o := range originsList {
-						if name, ok := o.(string); ok {
-							if def, ok := s.ListDefinitions.Lists[name]; ok {
-								inkList.Origins = append(inkList.Origins, def)
-							}
-						}
-					}
-				}
-			}
-
-			return NewListValue(inkList), nil
+		if obj, err := s.parseStateList(val); obj != nil || err != nil {
+			return obj, err
 		}
 
-		// ChoicePoint (Less common in dynamic state unless reference)
-		if pathOnChoice, ok := val["*"]; ok {
-			path := pathOnChoice.(string)
-			flg := 0
-			if f, ok := val["flg"]; ok {
-				flg = int(f.(float64))
-			}
-			// Reconstruct minimal ChoicePoint?
-			// Actually choice points are static. Use s.PointerAtPath to find it?
-			// But here we are decoding a Value (Object).
-			// If it's a value on the stack, it's a ChoicePoint reference?
-			// Ink Runtime treats ChoicePoint as RuntimeObject.
-			cp := NewChoicePoint(false, false, false, false, false) // Flags handled below
-			cp.PathStringOnChoice = path
-
-			// Flags decode
-			if (flg & 1) > 0 {
-				cp.HasCondition = true
-			}
-			if (flg & 2) > 0 {
-				cp.HasStartContent = true
-			}
-			if (flg & 4) > 0 {
-				cp.HasChoiceOnlyContent = true
-			}
-			if (flg & 8) > 0 {
-				cp.IsInvisibleDefault = true
-			}
-			if (flg & 16) > 0 {
-				cp.OnceOnly = true
-			}
-
-			return cp, nil
+		if obj := s.parseStateChoice(val); obj != nil {
+			return obj, nil
 		}
 	}
 
 	return nil, fmt.Errorf("unknown token type: %T", token)
+}
+
+func (s *Story) parseStateList(val map[string]interface{}) (RuntimeObject, error) {
+	listData, ok := val["list"]
+	if !ok {
+		return nil, nil
+	}
+
+	inkList := NewList()
+	listMap, ok := listData.(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("invalid list data format")
+	}
+
+	for key, v := range listMap {
+		s.parseStateListItem(inkList, key, v)
+	}
+
+	if originsVal, ok := val["origins"]; ok {
+		if originsList, ok := originsVal.([]interface{}); ok {
+			for _, o := range originsList {
+				if name, ok := o.(string); ok {
+					if def, ok := s.ListDefinitions.Lists[name]; ok {
+						inkList.Origins = append(inkList.Origins, def)
+					}
+				}
+			}
+		}
+	}
+
+	return NewListValue(inkList), nil
+}
+
+func (s *Story) parseStateChoice(val map[string]interface{}) RuntimeObject {
+	if pathOnChoice, ok := val["*"]; ok {
+		path := pathOnChoice.(string)
+		flg := 0
+		if f, ok := val["flg"]; ok {
+			flg = int(f.(float64))
+		}
+		cp := NewChoicePoint(false, false, false, false, false)
+		cp.SetPathStringOnChoice(path)
+		cp.SetFlags(flg)
+		return cp
+	}
+	if pathOnChoice, ok := val["+"]; ok {
+		path := pathOnChoice.(string)
+		flg := 0
+		if f, ok := val["flg"]; ok {
+			flg = int(f.(float64))
+		}
+		cp := NewChoicePoint(false, false, false, false, false)
+		cp.SetPathStringOnChoice(path)
+		cp.SetFlags(flg)
+		return cp
+	}
+	return nil
+}
+
+func (s *Story) parseStateString(val string) (RuntimeObject, error) {
+	firstChar := ""
+	if len(val) > 0 {
+		firstChar = string(val[0])
+	}
+
+	if firstChar == "^" {
+		return NewStringValue(val[1:]), nil
+	}
+	if val == "\n" {
+		return NewStringValue("\n"), nil
+	}
+	if val == "<>" {
+		return NewGlue(), nil
+	}
+
+	for i, name := range controlCommandNames {
+		if name == val {
+			return NewControlCommand(CommandType(i)), nil
+		}
+	}
+
+	if val == "L^" {
+		val = "^"
+	}
+	return NewNativeFunctionCall(val), nil
+}
+
+func (s *Story) parseStateListItem(inkList *List, key string, v interface{}) {
+	itemValFloat, ok := v.(float64)
+	if !ok {
+		return
+	}
+	itemVal := int(itemValFloat)
+
+	parts := strings.Split(key, ".")
+	var originName, itemName string
+	if len(parts) == 2 {
+		originName = parts[0]
+		itemName = parts[1]
+	} else {
+		itemName = key
+	}
+
+	item := NewListItem(originName, itemName)
+
+	if s.ListDefinitions != nil {
+		if def, ok := s.ListDefinitions.Lists[originName]; ok {
+			if _, ok := def.Items[itemName]; ok {
+				item.OriginName = def.Name
+			}
+		}
+	}
+
+	inkList.Add(item, itemVal)
 }

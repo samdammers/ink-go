@@ -7,10 +7,7 @@ import (
 
 // ToJSON serializes the story state to a JSON string.
 func (s *Story) ToJSON() (string, error) {
-	dto, err := s.stateToDto()
-	if err != nil {
-		return "", err
-	}
+	dto := s.stateToDto()
 
 	// Marshal to JSON
 	// We use standard Marshal. For Indent, user can unmarshal and marshal again if needed.
@@ -26,7 +23,7 @@ func (s *Story) ToJSON() (string, error) {
 	return string(bytes), nil
 }
 
-func (s *Story) stateToDto() (*StoryStateDto, error) {
+func (s *Story) stateToDto() *StoryStateDto {
 	ss := s.state
 
 	dto := &StoryStateDto{
@@ -40,10 +37,7 @@ func (s *Story) stateToDto() (*StoryStateDto, error) {
 
 	// Flows
 	for name, flow := range ss.NamedFlows {
-		flowDto, err := flowToDto(flow)
-		if err != nil {
-			return nil, err
-		}
+		flowDto := flowToDto(flow)
 		dto.Flows[name] = flowDto
 	}
 
@@ -59,18 +53,12 @@ func (s *Story) stateToDto() (*StoryStateDto, error) {
 	for name, val := range ss.VariablesState.GlobalVariables {
 		// Optimization: Check if value equals default global value?
 		// We skip this optimization for simplicity for now as per instructions (Map -> Dto).
-		vDto, err := runtimeObjectToInterface(val)
-		if err != nil {
-			return nil, err
-		}
+		vDto := runtimeObjectToInterface(val)
 		dto.VariablesState[name] = vDto
 	}
 
 	// EvalStack
-	evalStackDto, err := runtimeListToDto(ss.EvaluationStack)
-	if err != nil {
-		return nil, err
-	}
+	evalStackDto := runtimeListToDto(ss.EvaluationStack)
 	dto.EvalStack = evalStackDto
 
 	// DivertedPointer
@@ -96,27 +84,21 @@ func (s *Story) stateToDto() (*StoryStateDto, error) {
 	dto.StorySeed = ss.StorySeed
 	dto.PreviousRandom = ss.PreviousRandom
 
-	return dto, nil
+	return dto
 }
 
-func flowToDto(flow *Flow) (FlowDto, error) {
+func flowToDto(flow *Flow) FlowDto {
 	dto := FlowDto{
 		OutputStream:  make([]interface{}, 0),
 		ChoiceThreads: make(map[string]CallStackThreadDto),
 	}
 
 	// CallStack
-	csDto, err := callStackToDto(flow.CallStack)
-	if err != nil {
-		return dto, err
-	}
+	csDto := callStackToDto(flow.CallStack)
 	dto.CallStack = csDto
 
 	// OutputStream
-	streamDto, err := runtimeListToDto(flow.OutputStream)
-	if err != nil {
-		return dto, err
-	}
+	streamDto := runtimeListToDto(flow.OutputStream)
 	dto.OutputStream = streamDto
 
 	// ChoiceThreads
@@ -151,10 +133,7 @@ func flowToDto(flow *Flow) (FlowDto, error) {
 		}
 
 		if !found && c.ThreadAtGeneration != nil {
-			tDto, err := threadToDto(c.ThreadAtGeneration)
-			if err != nil {
-				return dto, err
-			}
+			tDto := threadToDto(c.ThreadAtGeneration)
 			dto.ChoiceThreads[fmt.Sprintf("%d", c.OriginalThreadIndex)] = tDto
 		}
 	}
@@ -165,7 +144,7 @@ func flowToDto(flow *Flow) (FlowDto, error) {
 		dto.CurrentChoices[i] = choiceToDto(c)
 	}
 
-	return dto, nil
+	return dto
 }
 
 func choiceToDto(c *Choice) ChoiceDto {
@@ -184,24 +163,21 @@ func choiceToDto(c *Choice) ChoiceDto {
 	return dto
 }
 
-func callStackToDto(cs *CallStack) (CallStackDto, error) {
+func callStackToDto(cs *CallStack) CallStackDto {
 	dto := CallStackDto{
 		Threads:       make([]CallStackThreadDto, 0),
 		ThreadCounter: cs.ThreadCounter,
 	}
 
 	for _, t := range cs.Threads {
-		tDto, err := threadToDto(t)
-		if err != nil {
-			return dto, err
-		}
+		tDto := threadToDto(t)
 		dto.Threads = append(dto.Threads, tDto)
 	}
 
-	return dto, nil
+	return dto
 }
 
-func threadToDto(t *CallStackThread) (CallStackThreadDto, error) {
+func threadToDto(t *CallStackThread) CallStackThreadDto {
 	dto := CallStackThreadDto{
 		CallStack:   make([]CallStackElementDto, 0),
 		ThreadIndex: t.ThreadIndex,
@@ -222,10 +198,7 @@ func threadToDto(t *CallStackThread) (CallStackThreadDto, error) {
 		}
 
 		for name, val := range el.TemporaryVariables {
-			vDto, err := runtimeObjectToInterface(val)
-			if err != nil {
-				return dto, err
-			}
+			vDto := runtimeObjectToInterface(val)
 			elDto.TemporaryVariables[name] = vDto
 		}
 
@@ -246,65 +219,62 @@ func threadToDto(t *CallStackThread) (CallStackThreadDto, error) {
 		}
 	}
 
-	return dto, nil
+	return dto
 }
 
-func runtimeListToDto(list []RuntimeObject) ([]interface{}, error) {
+func runtimeListToDto(list []RuntimeObject) []interface{} {
 	res := make([]interface{}, len(list))
 	for i, obj := range list {
-		v, err := runtimeObjectToInterface(obj)
-		if err != nil {
-			return nil, err
-		}
+		v := runtimeObjectToInterface(obj)
 		res[i] = v
 	}
-	return res, nil
+	return res
 }
 
-func runtimeObjectToInterface(obj RuntimeObject) (interface{}, error) {
+func runtimeObjectToInterface(obj RuntimeObject) interface{} {
 	switch v := obj.(type) {
 	case *Container:
-		return nil, nil // Containers not typically serialized as values here
+		return nil // Containers not typically serialized as values here
 	case *BoolValue:
-		return v.Value, nil
+		return v.Value
 	case *IntValue:
-		return v.Value, nil
+		return v.Value
 	case *FloatValue:
-		return v.Value, nil
+		return v.Value
 	case *StringValue:
 		if v.GetIsNewline() {
-			return "\n", nil
+			return "\n"
 		}
-		return "^" + v.Value, nil
+		return "^" + v.Value
 	case *ListValue:
-		return inkListToDto(v), nil
+		return inkListToDto(v)
 	case *DivertTargetValue:
 		pathStr := ""
 		if v.TargetPath != nil {
 			pathStr = v.TargetPath.String()
 		}
-		return map[string]string{"^->": pathStr}, nil
+		return map[string]string{"^->": pathStr}
 	case *VariablePointerValue:
 		return map[string]interface{}{
 			"^var": v.VariableName(),
 			"ci":   v.ContextIndex(),
-		}, nil
+		}
 	case *Glue:
-		return "<>", nil
+		return "<>"
 	case *ControlCommand:
-		return controlCommandToString(v.CommandType), nil
+		return controlCommandToString(v.CommandType)
 	case *NativeFunctionCall:
-		return v.Name, nil
+		return v.Name
 	case *Void:
-		return VoidName, nil
+		return VoidName
 	case *ChoicePoint:
 		return map[string]interface{}{
 			"*":   v.PathStringOnChoice,
 			"flg": v.Flags(),
-		}, nil
+		}
 	}
 	// Fallback for unknown types or nil
-	return nil, nil
+	return nil
 }
 
 func inkListToDto(l *ListValue) map[string]interface{} {

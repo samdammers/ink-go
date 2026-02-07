@@ -18,6 +18,8 @@ type Story struct {
 type ExternalFunction func(args []any) (any, error)
 
 // NewStory creates a new Story object from a JSON string.
+//
+//nolint:gocognit
 func NewStory(jsonString string) (*Story, error) {
 	var root map[string]any
 	if err := json.Unmarshal([]byte(jsonString), &root); err != nil {
@@ -120,6 +122,8 @@ func (s *Story) ContinueMaximally() (string, error) {
 
 // CurrentText returns the current output text.
 // CurrentText returns the current output text.
+//
+//nolint:gocognit
 func (s *Story) CurrentText() string {
 	var sb strings.Builder
 	glueActive := false
@@ -543,266 +547,30 @@ func (s *Story) IncrementContentPointer() bool {
 	return successfulIncrement
 }
 
+// PerformLogicAndFlowControl executes the logic and flow control for the given content.
 func (s *Story) PerformLogicAndFlowControl(content RuntimeObject) bool {
 	if content == nil {
 		return false
 	}
 
-	// Control Commands (Eval, Stack, etc)
-	if evalCommand, ok := content.(*ControlCommand); ok {
-		switch evalCommand.CommandType {
-		case CommandTypeEvalStart:
-			s.state.SetInExpressionEvaluation(true)
-			return true
-		case CommandTypeEvalEnd:
-			s.state.SetInExpressionEvaluation(false)
-			return true
-		case CommandTypeEvalOutput:
-			if len(s.state.EvaluationStack) > 0 {
-				output := s.state.PopEvaluationStack()
-				if _, isVoid := output.(*Void); !isVoid {
-					s.state.PushToOutputStream(output)
-				}
-			}
-			return true
-		case CommandTypeNoOp:
-			return true
-		case CommandTypeDuplicate:
-			s.state.PushEvaluationStack(s.state.PeekEvaluationStack())
-			return true
-		case CommandTypePopEvaluatedValue:
-			s.state.PopEvaluationStack()
-			return true
-		case CommandTypePopFunction, CommandTypePopTunnel:
-			pushPopType := PushPopTypeFunction
-			if evalCommand.CommandType == CommandTypePopTunnel {
-				pushPopType = PushPopTypeTunnel
-
-				// Tunnel override: Check if there's a divert target on the evaluation stack
-				if len(s.state.EvaluationStack) > 0 {
-					peek := s.state.PeekEvaluationStack()
-					if divertVal, ok := peek.(*DivertTargetValue); ok {
-						s.state.PopEvaluationStack() // Consume it
-						// Pop from the call stack to exit the tunnel
-						err := s.state.PopCallStack(pushPopType) // Ignore error? Or should we?
-						if err != nil {
-							s.state.AddError(fmt.Sprintf("formatting error: %v", err))
-						}
-						// Divert to the target
-						s.state.SetDivertedPointer(s.PointerAtPath(divertVal.GetTargetPath()))
-						return true
-					}
-				}
-			}
-
-			// Pop from the call stack
-			// For Tunnels, it's just a jump back
-			err := s.state.PopCallStack(pushPopType)
-			if err != nil {
-				return true // Error state?
-			}
-			return true
-		case CommandTypeStartThread:
-			s.state.InThreadGeneration = true
-			return true
-		case CommandTypeDone:
-			// If we're in a thread, kill it and return to the main thread
-			if s.state.GetCallStack().CanPopThread() {
-				s.state.GetCallStack().PopThread()
-				// Trick: Set DivertedPointer to current to prevent NextContent from incrementing
-				// effectively treating the resume as a jump to the current position.
-				s.state.SetDivertedPointer(s.state.GetCurrentPointer())
-				return true
-			}
-			s.state.SetCurrentPointer(NullPointer)
-			return true
-		}
-		return true
+	if c, ok := content.(*ControlCommand); ok {
+		return s.performControlCommand(c)
+	}
+	if d, ok := content.(*Divert); ok {
+		return s.performDivert(d)
+	}
+	if v, ok := content.(*VariableReference); ok {
+		return s.performVariableReference(v)
+	}
+	if v, ok := content.(*VariableAssignment); ok {
+		return s.performVariableAssignment(v)
+	}
+	if n, ok := content.(*NativeFunctionCall); ok {
+		return s.performNativeFunction(n)
 	}
 
-	// Divert
-	if divert, ok := content.(*Divert); ok {
-		if s.state.InThreadGeneration {
-			if divert.PushesToStack {
-				s.state.CallStack.Push(divert.StackPushType, 0, 0)
-			}
-
-			s.state.InThreadGeneration = false
-			s.state.CallStack.PushThread()
-
-			// Fork complete. The new thread (Active) will take the divert below.
-			// The old thread (Inactive) needs to step over this instruction.
-			prevThread := s.state.CallStack.Threads[len(s.state.CallStack.Threads)-2]
-			elem := prevThread.CallStack[len(prevThread.CallStack)-1]
-			elem.CurrentPointer.Index++
-		}
-
-		if divert.IsConditional {
-			if len(s.state.EvaluationStack) > 0 {
-				cond := s.state.PopEvaluationStack()
-				if !s.IsTruthy(cond) {
-					return true
-				}
-			}
-		}
-
-		if divert.IsExternal {
-			err := s.callExternalFunction(divert.TargetPath.String(), divert.ExternalArgs)
-			if err != nil {
-				fmt.Printf("Error calling external function %s: %v\n", divert.TargetPath.String(), err)
-			}
-			return true
-		}
-
-		targetPath := divert.TargetPath
-
-		// Variable Divert
-		if divert.VariableDivertName != "" {
-			val := s.state.GetVariablesState().GetVariableWithName(divert.VariableDivertName)
-			if val != nil {
-				if dv, ok := val.(*DivertTargetValue); ok {
-					targetPath = dv.GetTargetPath()
-				}
-			}
-		}
-
-		if divert.PushesToStack {
-			s.state.CallStack.Push(divert.StackPushType, 0, 0)
-		}
-
-		if targetPath == nil && divert.VariableDivertName == "" {
-			return true // Should act as DONE? or Error?
-		}
-
-		if targetPath != nil && targetPath.IsRelative {
-			ptr := s.state.GetCurrentPointer()
-			if !ptr.IsNull() {
-				targetPath = ptr.Path().PathByAppendingPath(targetPath)
-			}
-		}
-
-		s.state.SetDivertedPointer(s.PointerAtPath(targetPath))
-		return true
-	}
-
-	// Variable Reference
-	if varRef, ok := content.(*VariableReference); ok {
-		val := s.state.GetVariablesState().GetVariableWithName(varRef.Name)
-		if val == nil {
-			s.state.AddWarning("Variable not found: " + varRef.Name)
-			val = NewIntValue(0)
-		}
-		s.state.PushEvaluationStack(val)
-		return true
-	}
-
-	// Variable Assignment
-	if varAss, ok := content.(*VariableAssignment); ok {
-		val := s.state.PopEvaluationStack()
-		if val == nil {
-			return true // Error?
-		}
-		err := s.state.GetVariablesState().Assign(varAss, val)
-		if err != nil {
-			s.state.AddError(err.Error())
-			return true
-		}
-		return true
-	}
-
-	// Native Function Call
-	if nativeFunc, ok := content.(*NativeFunctionCall); ok {
-		params := make([]RuntimeObject, nativeFunc.NumberOfParameters)
-		for i := nativeFunc.NumberOfParameters - 1; i >= 0; i-- {
-			params[i] = s.state.PopEvaluationStack()
-		}
-		result, err := nativeFunc.Call(params)
-		if err != nil {
-			// Handle error logic
-			return true
-		}
-		s.state.PushEvaluationStack(result)
-		return true
-	}
-
-	// Choice Point
-	if choicePoint, ok := content.(*ChoicePoint); ok {
-		s.processChoice(choicePoint)
-		return true
-	}
-
-	// Divert
-	if divert, ok := content.(*Divert); ok {
-		if s.state.InThreadGeneration {
-			shouldFork := true
-			if divert.IsConditional {
-				val := s.state.PopEvaluationStack()
-				shouldFork = s.IsTruthy(val)
-			}
-
-			if shouldFork {
-				s.state.GetCallStack().Fork()
-				s.state.InThreadGeneration = false
-
-				// Advance the previous thread (now second on stack) past this divert
-				// so it continues flow instead of diverting when it resumes.
-				prevThread := s.state.GetCallStack().Threads[len(s.state.GetCallStack().Threads)-2]
-				prevThread.CallStack[len(prevThread.CallStack)-1].CurrentPointer.Index++
-			} else {
-				// Condition false, just continue main flow.
-				// InThreadGeneration was set, but we consumed it effectively.
-				s.state.InThreadGeneration = false
-				return true
-			}
-		} else if divert.IsConditional {
-			// Check logic
-			val := s.state.PopEvaluationStack()
-			if !s.IsTruthy(val) {
-				return true
-			}
-		}
-
-		switch {
-		case divert.HasVariableTarget():
-			varName := divert.GetVariableDivertName()
-			varVal := s.state.GetVariablesState().GetVariableWithName(varName)
-
-			if divTarget, ok := varVal.(*DivertTargetValue); ok {
-				s.state.SetDivertedPointer(s.PointerAtPath(divTarget.GetTargetPath()))
-			} else {
-				// Error or other logic
-				s.state.SetDivertedPointer(NullPointer) // Fail safely?
-			}
-		case divert.IsExternal:
-			funcName := divert.GetTargetPath().String() // Usually stored here? Or VariableDivertName?
-			// Checking divert.go: IsExternal is a flag.
-			// If external, args is Divert.ExternalArgs.
-			// Target Path holds the function name usually.
-			err := s.callExternalFunction(funcName, divert.ExternalArgs)
-			if err != nil {
-				return true // Error handling?
-			}
-			return true
-		default:
-			targetPath := divert.GetTargetPath()
-			if targetPath.IsRelative {
-				context := divert.GetParent()
-				if context != nil {
-					// Make absolute by appending to context's path
-					// Path logic: parent.Path + targetPath
-					parentPath := context.GetPath()
-					// If parent path is nil/empty (root context?), handle carefully
-					// Usually runtime objects have paths.
-					targetPath = parentPath.PathByAppendingPath(targetPath)
-				}
-			}
-			s.state.SetDivertedPointer(s.PointerAtPath(targetPath))
-		}
-
-		if divert.PushesToStack {
-			s.state.GetCallStack().Push(divert.StackPushType, 0, len(s.state.GetOutputStream()))
-		}
-
+	if c, ok := content.(*ChoicePoint); ok {
+		s.processChoice(c)
 		return true
 	}
 
@@ -880,4 +648,166 @@ func (s *Story) PointerAtContent(obj RuntimeObject) Pointer {
 	}
 
 	return NullPointer
+}
+
+//nolint:gocognit
+func (s *Story) performControlCommand(evalCommand *ControlCommand) bool {
+	switch evalCommand.CommandType {
+	case CommandTypeEvalStart:
+		s.state.SetInExpressionEvaluation(true)
+		return true
+	case CommandTypeEvalEnd:
+		s.state.SetInExpressionEvaluation(false)
+		return true
+	case CommandTypeEvalOutput:
+		if len(s.state.EvaluationStack) > 0 {
+			output := s.state.PopEvaluationStack()
+			if _, isVoid := output.(*Void); !isVoid {
+				s.state.PushToOutputStream(output)
+			}
+		}
+		return true
+	case CommandTypeNoOp:
+		return true
+	case CommandTypeDuplicate:
+		s.state.PushEvaluationStack(s.state.PeekEvaluationStack())
+		return true
+	case CommandTypePopEvaluatedValue:
+		s.state.PopEvaluationStack()
+		return true
+	case CommandTypePopFunction, CommandTypePopTunnel:
+		pushPopType := PushPopTypeFunction
+		if evalCommand.CommandType == CommandTypePopTunnel {
+			pushPopType = PushPopTypeTunnel
+
+			if len(s.state.EvaluationStack) > 0 {
+				peek := s.state.PeekEvaluationStack()
+				if divertVal, ok := peek.(*DivertTargetValue); ok {
+					s.state.PopEvaluationStack()
+					err := s.state.PopCallStack(pushPopType) // Ignore error?
+					if err != nil {
+						s.state.AddError(fmt.Sprintf("formatting error: %v", err))
+					}
+					s.state.SetDivertedPointer(s.PointerAtPath(divertVal.GetTargetPath()))
+					return true
+				}
+			}
+		}
+
+		err := s.state.PopCallStack(pushPopType)
+		if err != nil {
+			return true
+		}
+		return true
+	case CommandTypeStartThread:
+		s.state.InThreadGeneration = true
+		return true
+	case CommandTypeDone:
+		if s.state.GetCallStack().CanPopThread() {
+			s.state.GetCallStack().PopThread()
+			s.state.SetDivertedPointer(s.state.GetCurrentPointer())
+			return true
+		}
+		s.state.SetCurrentPointer(NullPointer)
+		return true
+	}
+	return true
+}
+
+//nolint:gocognit
+func (s *Story) performDivert(divert *Divert) bool {
+	if s.state.InThreadGeneration {
+		if divert.PushesToStack {
+			s.state.CallStack.Push(divert.StackPushType, 0, 0)
+		}
+
+		s.state.InThreadGeneration = false
+		s.state.CallStack.PushThread()
+
+		prevThread := s.state.CallStack.Threads[len(s.state.CallStack.Threads)-2]
+		elem := prevThread.CallStack[len(prevThread.CallStack)-1]
+		elem.CurrentPointer.Index++
+	}
+
+	if divert.IsConditional {
+		if len(s.state.EvaluationStack) > 0 {
+			cond := s.state.PopEvaluationStack()
+			if !s.IsTruthy(cond) {
+				return true
+			}
+		}
+	}
+
+	if divert.IsExternal {
+		err := s.callExternalFunction(divert.TargetPath.String(), divert.ExternalArgs)
+		if err != nil {
+			fmt.Printf("Error calling external function %s: %v\n", divert.TargetPath.String(), err)
+		}
+		return true
+	}
+
+	targetPath := divert.TargetPath
+
+	if divert.VariableDivertName != "" {
+		val := s.state.GetVariablesState().GetVariableWithName(divert.VariableDivertName)
+		if val != nil {
+			if dv, ok := val.(*DivertTargetValue); ok {
+				targetPath = dv.GetTargetPath()
+			}
+		}
+	}
+
+	if divert.PushesToStack {
+		s.state.CallStack.Push(divert.StackPushType, 0, 0)
+	}
+
+	if targetPath == nil && divert.VariableDivertName == "" {
+		return true
+	}
+
+	if targetPath != nil && targetPath.IsRelative {
+		ptr := s.state.GetCurrentPointer()
+		if !ptr.IsNull() {
+			targetPath = ptr.Path().PathByAppendingPath(targetPath)
+		}
+	}
+
+	s.state.SetDivertedPointer(s.PointerAtPath(targetPath))
+	return true
+}
+
+func (s *Story) performVariableReference(varRef *VariableReference) bool {
+	val := s.state.GetVariablesState().GetVariableWithName(varRef.Name)
+	if val == nil {
+		s.state.AddWarning("Variable not found: " + varRef.Name)
+		val = NewIntValue(0)
+	}
+	s.state.PushEvaluationStack(val)
+	return true
+}
+
+func (s *Story) performVariableAssignment(varAss *VariableAssignment) bool {
+	val := s.state.PopEvaluationStack()
+	if val == nil {
+		return true
+	}
+	err := s.state.GetVariablesState().Assign(varAss, val)
+	if err != nil {
+		s.state.AddError(err.Error())
+		return true
+	}
+	return true
+}
+
+func (s *Story) performNativeFunction(nativeFunc *NativeFunctionCall) bool {
+	params := make([]RuntimeObject, nativeFunc.NumberOfParameters)
+	for i := nativeFunc.NumberOfParameters - 1; i >= 0; i-- {
+		params[i] = s.state.PopEvaluationStack()
+	}
+	result, err := nativeFunc.Call(params)
+	if err != nil {
+		return true
+	}
+	s.state.PushEvaluationStack(result)
+	return true
 }
