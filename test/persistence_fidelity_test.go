@@ -3,7 +3,7 @@ package test
 import (
 	"testing"
 
-	"github.com/samdammers/go-ink/ink"
+	"github.com/samdammers/ink-go/ink"
 )
 
 // TestFloatTypeErasure demonstrates the loss of type fidelity for whole-number floats

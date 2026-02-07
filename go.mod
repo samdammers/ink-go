@@ -1,3 +1,3 @@
-module github.com/samdammers/go-ink
+module github.com/samdammers/ink-go
 
 go 1.25

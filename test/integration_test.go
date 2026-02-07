@@ -5,7 +5,7 @@ import (
 	"math"
 	"testing"
 
-	"github.com/samdammers/go-ink/ink"
+	"github.com/samdammers/ink-go/ink"
 )
 
 // The "Victory Lap" - A full integration test of the engine.
