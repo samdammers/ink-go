@@ -62,7 +62,7 @@ func TestValueCasting(t *testing.T) {
 			if err != nil {
 				return
 			}
-			
+
 			if castVal == nil && tt.expectedVal == nil {
 				return // Success
 			}
@@ -79,7 +79,7 @@ func TestValueCasting(t *testing.T) {
 				}
 				return
 			}
-			
+
 			if castVal.GetValueObject() != tt.expectedVal {
 				t.Errorf("got %v, want %v", castVal.GetValueObject(), tt.expectedVal)
 			}
@@ -135,7 +135,7 @@ func TestCreateValue(t *testing.T) {
 				}
 				return
 			}
-			
+
 			if val.GetValueType() != tt.expectedType {
 				t.Errorf("got type %v, want %v", val.GetValueType(), tt.expectedType)
 			}

@@ -1,3 +1,4 @@
+// Package main is entry point for the ink-cli.
 package main
 
 import (

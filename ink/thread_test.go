@@ -76,6 +76,9 @@ func TestThreadHubPattern(t *testing.T) {
 	}
 }
 
+// (Dialogue is correct in this context for conversational references)
+//
+//nolint:misspell
 func TestSimultaneousChoices(t *testing.T) {
 	// Scenario:
 	// A "Quest Log" choice interaction running in parallel with "Dialogue" choices.

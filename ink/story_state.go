@@ -63,6 +63,7 @@ func NewStoryState(story *Story) *StoryState {
 	return ss
 }
 
+// GoToStart resets the story state to the start.
 func (ss *StoryState) GoToStart() {
 	ss.CallStack = NewCallStack(ss.Story.MainContent)
 	// Provide method to access ListDefs in Story
@@ -89,6 +90,7 @@ func (ss *StoryState) GoToStart() {
 	ss.OutputStreamDirty = true
 }
 
+// GetCallStack returns the current call stack.
 func (ss *StoryState) GetCallStack() *CallStack {
 	if ss.CurrentFlow == nil {
 		return nil
@@ -122,20 +124,20 @@ func (ss *StoryState) SetDivertedPointer(p Pointer) {
 }
 
 // PopCallStack pops the call stack.
-func (ss *StoryState) PopCallStack(type_ PushPopType) error {
+func (ss *StoryState) PopCallStack(popType PushPopType) error {
 	// Security Check: Clean up stack after tunnels to prevent "Dirty Stack" bugs
 	var heightWhenPushed int
-	if type_ == PushPopTypeTunnel {
+	if popType == PushPopTypeTunnel {
 		heightWhenPushed = ss.GetCallStack().CurrentElement().EvaluationStackHeightWhenPushed
 	}
 
-	err := ss.GetCallStack().Pop(type_)
+	err := ss.GetCallStack().Pop(popType)
 	if err != nil {
 		return err
 	}
 
 	// For tunnels, we forcefully clean up any debris left on the evaluation stack
-	if type_ == PushPopTypeTunnel {
+	if popType == PushPopTypeTunnel {
 		if len(ss.EvaluationStack) > heightWhenPushed {
 			ss.EvaluationStack = ss.EvaluationStack[:heightWhenPushed]
 		}
@@ -218,6 +220,16 @@ func (ss *StoryState) AddGeneratedChoice(choice *Choice) {
 	ss.CurrentFlow.CurrentChoices = append(ss.CurrentFlow.CurrentChoices, choice)
 }
 
+// AddError adds an error to the current list of errors.
+func (ss *StoryState) AddError(msg string) {
+	ss.CurrentErrors = append(ss.CurrentErrors, msg)
+}
+
+// AddWarning adds a warning to the current list of warnings.
+func (ss *StoryState) AddWarning(msg string) {
+	ss.CurrentWarnings = append(ss.CurrentWarnings, msg)
+}
+
 // HasError returns true if there are errors.
 func (ss *StoryState) HasError() bool {
 	return len(ss.CurrentErrors) > 0
@@ -228,24 +240,29 @@ func (ss *StoryState) HasWarning() bool {
 	return len(ss.CurrentWarnings) > 0
 }
 
+// GetCurrentErrors returns the list of current errors.
 func (ss *StoryState) GetCurrentErrors() []string {
 	return ss.CurrentErrors
 }
 
+// GetCurrentWarnings returns the list of current warnings.
 func (ss *StoryState) GetCurrentWarnings() []string {
 	return ss.CurrentWarnings
 }
 
+// ResetOutput resets the output stream.
 func (ss *StoryState) ResetOutput() {
 	ss.CurrentFlow.OutputStream = make([]RuntimeObject, 0)
 	ss.CurrentFlow.CurrentChoices = make([]*Choice, 0)
 	ss.OutputStreamDirty = true
 }
 
+// SetDidSafeExit sets the safe exit flag.
 func (ss *StoryState) SetDidSafeExit(didSafeExit bool) {
 	ss.DidSafeExit = didSafeExit
 }
 
+// GetVariablesState returns the variables state.
 func (ss *StoryState) GetVariablesState() *VariablesState {
 	return ss.VariablesState
 }
@@ -258,6 +275,7 @@ func (ss *StoryState) VisitCountForContainer(container *Container) int {
 	return 0
 }
 
+// IncrementVisitCountForContainer increments the visit count for a container.
 func (ss *StoryState) IncrementVisitCountForContainer(container *Container) {
 	count := 0
 	if c, ok := ss.VisitCounts[container]; ok {
@@ -267,6 +285,7 @@ func (ss *StoryState) IncrementVisitCountForContainer(container *Container) {
 	ss.VisitCounts[container] = count
 }
 
+// RecordTurnIndexVisitToContainer records the turn index visit to a container.
 func (ss *StoryState) RecordTurnIndexVisitToContainer(container *Container) {
 	ss.TurnIndices[container] = ss.CurrentTurnIndex
 }

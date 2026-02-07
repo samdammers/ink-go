@@ -47,7 +47,7 @@ These files define the structure of the compiled story.
 
 ### 5. Disk I/O (Save/Load)
 
-- **`persistence.go`**: `ToJson` implementation.
+- **`persistence.go`**: `ToJSON` implementation.
 - **`persistence_loader.go`**: `LoadState` implementation.
 - **`persistence_dto.go`**: Struct definitions for the JSON format.
 

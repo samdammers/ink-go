@@ -9,7 +9,7 @@ import (
 type ValueType int
 
 const (
-	// NoType is the default type for a value.
+	// ValueTypeNoType is the default type for a value.
 	ValueTypeNoType ValueType = iota
 	// ValueTypeInt is the type for integer values.
 	ValueTypeInt
@@ -43,6 +43,7 @@ type value[T any] struct {
 	Value T
 }
 
+// GetValueObject returns the underlying value as interface{}.
 func (v *value[T]) GetValueObject() any {
 	return v.Value
 }
@@ -212,7 +213,7 @@ func CreateValue(val any) Value {
 		return NewIntValue(0)
 	case nil:
 		return nil
-	// TODO: Add other types: *Path, InkList
+	// TODO: Add other types: *Path, List
 	default:
 		// Fallback for unknown types to avoid panic
 		return NewStringValue(fmt.Sprintf("%v", v))

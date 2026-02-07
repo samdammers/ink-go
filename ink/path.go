@@ -6,6 +6,7 @@ import (
 )
 
 const (
+	// ParentID is the character used to represent the parent in a path.
 	ParentID = "^"
 )
 

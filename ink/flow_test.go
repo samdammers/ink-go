@@ -55,17 +55,3 @@ func TestTunnelFlow(t *testing.T) {
 		t.Errorf("Tunnel flow mismatch.\nGot: '%s'\nWant: '%s'", text, expected)
 	}
 }
-
-func TestThreadFlow(t *testing.T) {
-	// ThreadStart ( fork ), ThreadEnd ( done )
-	// JSON representation of threads is complex.
-	// Basic Thread:
-	// root: [ -> thread_target, "Main side", done ]
-	// thread_target: [ "Thread side", done ] - But wait, -> is divert.
-	// Threads use "ex" / "thread" commands?
-	// Standard ink uses `<- target`.
-	// compiled: ControlCommand(StartThread) -> pushes thread to stack.
-
-	// Let's defer strict Thread testing until implementation details are confirmed,
-	// but Tunnel is critical for Task 7.2.
-}

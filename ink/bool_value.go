@@ -1,3 +1,4 @@
+// Package ink provides the runtime for the ink language.
 package ink
 
 import "fmt"

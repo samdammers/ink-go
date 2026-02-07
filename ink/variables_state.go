@@ -62,7 +62,6 @@ func (vs *VariablesState) Assign(varAss *VariableAssignment, value RuntimeObject
 	} else {
 		// Assign to existing variable pointer?
 		var existingPointer *VariablePointerValue
-		var err error
 		for {
 			obj := vs.GetRawVariableWithName(name, contextIndex)
 			existingPointer, _ = obj.(*VariablePointerValue)
@@ -75,9 +74,6 @@ func (vs *VariablesState) Assign(varAss *VariableAssignment, value RuntimeObject
 				break
 			}
 			// Safe check for infinite loop?
-		}
-		if err != nil {
-			return err
 		}
 	}
 
@@ -114,6 +110,7 @@ func (vs *VariablesState) GetVariableWithName(name string) RuntimeObject {
 	return vs.GetVariableWithNameContext(name, -1)
 }
 
+// GetVariableWithNameContext gets a variable value with a specific callstack context.
 func (vs *VariablesState) GetVariableWithNameContext(name string, contextIndex int) RuntimeObject {
 	varValue := vs.GetRawVariableWithName(name, contextIndex)
 
@@ -145,9 +142,9 @@ func (vs *VariablesState) GetRawVariableWithName(name string, contextIndex int) 
 			return val
 		}
 
-		if vs.ListDefsOrigin != nil {
-			// TODO: List definitions access
-		}
+		// if vs.ListDefsOrigin != nil {
+		// TODO: List definitions access
+		// }
 	}
 
 	return nil
@@ -188,7 +185,7 @@ func (vs *VariablesState) GetContextIndexOfVariableNamed(name string) int {
 
 // Copy creates a deep copy.
 func (vs *VariablesState) Copy(newCallStack *CallStack) *VariablesState {
-	copy := NewVariablesState(newCallStack, vs.ListDefsOrigin)
+	cp := NewVariablesState(newCallStack, vs.ListDefsOrigin)
 	for k, v := range vs.GlobalVariables {
 		// TODO: Deep copy runtime object? Value.Copy()?
 		// Assuming immutable or copy method exists
@@ -197,9 +194,9 @@ func (vs *VariablesState) Copy(newCallStack *CallStack) *VariablesState {
 		// VariablePointerValue has Copy().
 		// We should probably rely on immutability for simple values or check specific types.
 		// For now, simple assignment. Values should be treated as values.
-		copy.GlobalVariables[k] = v // Shallow copy of map value (pointer)
+		cp.GlobalVariables[k] = v // Shallow copy of map value (pointer)
 		// If v is mutable, we might need v.Copy().
 	}
 	// TODO: Default globals, patch, etc.
-	return copy
+	return cp
 }

@@ -15,19 +15,19 @@ type CallStackElement struct {
 }
 
 // NewCallStackElement creates a new CallStackElement.
-func NewCallStackElement(type_ PushPopType, pointer Pointer, inExpressionEvaluation bool) *CallStackElement {
+func NewCallStackElement(pushPopType PushPopType, pointer Pointer, inExpressionEvaluation bool) *CallStackElement {
 	e := &CallStackElement{
 		CurrentPointer:         Pointer{Container: pointer.Container, Index: pointer.Index}, // Copy
 		InExpressionEvaluation: inExpressionEvaluation,
 		TemporaryVariables:     make(map[string]RuntimeObject),
-		Type:                   type_,
+		Type:                   pushPopType,
 	}
 	return e
 }
 
 // Copy creates a deep copy of the element.
 func (e *CallStackElement) Copy() *CallStackElement {
-	copy := &CallStackElement{
+	cp := &CallStackElement{
 		CurrentPointer:                  Pointer{Container: e.CurrentPointer.Container, Index: e.CurrentPointer.Index},
 		InExpressionEvaluation:          e.InExpressionEvaluation,
 		TemporaryVariables:              make(map[string]RuntimeObject, len(e.TemporaryVariables)),
@@ -36,9 +36,9 @@ func (e *CallStackElement) Copy() *CallStackElement {
 		FunctionStartInOutputStream:     e.FunctionStartInOutputStream,
 	}
 	for k, v := range e.TemporaryVariables {
-		copy.TemporaryVariables[k] = v
+		cp.TemporaryVariables[k] = v
 	}
-	return copy
+	return cp
 }
 
 // CallStackThread represents a thread of execution in the story.
@@ -58,13 +58,13 @@ func NewCallStackThread() *CallStackThread {
 
 // Copy creates a deep copy of the thread.
 func (t *CallStackThread) Copy() *CallStackThread {
-	copy := NewCallStackThread()
-	copy.ThreadIndex = t.ThreadIndex
+	cp := NewCallStackThread()
+	cp.ThreadIndex = t.ThreadIndex
 	for _, e := range t.CallStack {
-		copy.CallStack = append(copy.CallStack, e.Copy())
+		cp.CallStack = append(cp.CallStack, e.Copy())
 	}
-	copy.PreviousPointer = Pointer{Container: t.PreviousPointer.Container, Index: t.PreviousPointer.Index}
-	return copy
+	cp.PreviousPointer = Pointer{Container: t.PreviousPointer.Container, Index: t.PreviousPointer.Index}
+	return cp
 }
 
 // CallStack handles the call stack for the story.
@@ -91,15 +91,15 @@ func (cs *CallStack) Reset() {
 
 // Copy creates a deep copy of the CallStack.
 func (cs *CallStack) Copy() *CallStack {
-	copy := &CallStack{
+	cp := &CallStack{
 		Threads:       make([]*CallStackThread, len(cs.Threads)),
 		ThreadCounter: cs.ThreadCounter,
 		StartOfRoot:   Pointer{Container: cs.StartOfRoot.Container, Index: cs.StartOfRoot.Index},
 	}
 	for i, t := range cs.Threads {
-		copy.Threads[i] = t.Copy()
+		cp.Threads[i] = t.Copy()
 	}
-	return copy
+	return cp
 }
 
 // CurrentThread returns the current active thread.
@@ -182,21 +182,21 @@ func (cs *CallStack) CanPop() bool {
 }
 
 // CanPopType returns true if can pop and the type matches.
-func (cs *CallStack) CanPopType(type_ PushPopType) bool {
+func (cs *CallStack) CanPopType(popType PushPopType) bool {
 	if !cs.CanPop() {
 		return false
 	}
 	// TODO: Handle null type equivalent? Go Enum doesn't handle nil.
 	// Assuming type passed is always valid.
 	// If caller needs check, they check.
-	return cs.CurrentElement().Type == type_
+	return cs.CurrentElement().Type == popType
 }
 
 // Push pushes a new element onto the stack.
-func (cs *CallStack) Push(type_ PushPopType, externalEvaluationStackHeight int, outputStreamLengthWithPushed int) {
+func (cs *CallStack) Push(pushType PushPopType, externalEvaluationStackHeight int, outputStreamLengthWithPushed int) {
 	// When changing content pointer during a function call, we usually want to pointer
 	// relative to where the function call is.
-	element := NewCallStackElement(type_, cs.CurrentElement().CurrentPointer, false)
+	element := NewCallStackElement(pushType, cs.CurrentElement().CurrentPointer, false)
 	element.EvaluationStackHeightWhenPushed = externalEvaluationStackHeight
 	element.FunctionStartInOutputStream = outputStreamLengthWithPushed
 
@@ -208,8 +208,8 @@ func (cs *CallStack) Push(type_ PushPopType, externalEvaluationStackHeight int, 
 }
 
 // Pop pops the top element from the stack.
-func (cs *CallStack) Pop(type_ PushPopType) error {
-	if cs.CanPopType(type_) {
+func (cs *CallStack) Pop(popType PushPopType) error {
+	if cs.CanPopType(popType) {
 		thread := cs.CurrentThread()
 		thread.CallStack = thread.CallStack[:len(thread.CallStack)-1]
 		return nil

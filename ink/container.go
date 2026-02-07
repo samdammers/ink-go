@@ -66,7 +66,6 @@ func (c *Container) tryAddNamedContent(content RuntimeObject) {
 
 func (c *Container) addToNamedContentOnly(namedContent INamedContent) {
 	if runtimeObj, ok := namedContent.(RuntimeObject); ok {
-
 		runtimeObj.SetParent(c)
 
 		c.NamedContent[namedContent.Name()] = runtimeObj

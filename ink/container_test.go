@@ -92,11 +92,11 @@ func TestContainerNamedContent(t *testing.T) {
 
 func TestContainerContentOrdering(t *testing.T) {
 	c := NewContainer()
-	
+
 	s1 := NewStringValue("one")
 	s2 := NewStringValue("two")
 	s3 := NewStringValue("three")
-	
+
 	c.AddContent(s1)
 	c.AddContent(s2)
 	c.AddContent(s3)
@@ -136,19 +136,19 @@ func TestAddContentWithExistingParent(t *testing.T) {
 func TestAddNamedContentWithExistingParent(t *testing.T) {
 	c1 := NewContainer()
 	c2 := NewContainer()
-	
+
 	s := NewStringValue("hello")
-	
+
 	err := c1.AddNamedContent("s", s)
 	if err != nil {
 		t.Fatalf("Initial AddNamedContent failed: %v", err)
 	}
-	
+
 	err = c2.AddNamedContent("s", s)
 	if err == nil {
 		t.Fatal("Expected an error when adding named content with an existing parent, but got nil")
 	}
-	
+
 	if len(c2.NamedContent) != 0 {
 		t.Errorf("Container should not be modified on failed AddNamedContent. Expected 0 items, got %d", len(c2.NamedContent))
 	}

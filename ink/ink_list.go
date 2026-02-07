@@ -6,14 +6,14 @@ import (
 	"strings"
 )
 
-// InkListItem represents an item in an ink list.
-type InkListItem struct {
+// ListItem represents an item in an ink list.
+type ListItem struct {
 	OriginName string
 	ItemName   string
 }
 
 // FullName returns the full name of the item.
-func (i InkListItem) FullName() string {
+func (i ListItem) FullName() string {
 	if i.OriginName == "" {
 		return i.ItemName
 	}
@@ -21,54 +21,54 @@ func (i InkListItem) FullName() string {
 }
 
 // String returns the string representation of the item.
-func (i InkListItem) String() string {
+func (i ListItem) String() string {
 	return i.FullName()
 }
 
-// NewInkListItem creates a new InkListItem.
-func NewInkListItem(originName, itemName string) InkListItem {
-	return InkListItem{
+// NewListItem creates a new ListItem.
+func NewListItem(originName, itemName string) ListItem {
+	return ListItem{
 		OriginName: originName,
 		ItemName:   itemName,
 	}
 }
 
-// InkList represents a list value in Ink.
-// It maps InkListItem to int (value).
+// List represents a list value in Ink.
+// It maps ListItem to int (value).
 // Note: In C#, currently supported underlying type is int.
-type InkList struct {
-	Items map[InkListItem]int
+type List struct {
+	Items map[ListItem]int
 	// Origins of the list items (definitions)
 	Origins []*ListDefinition
 }
 
-// NewInkList creates a new empty InkList.
-func NewInkList() *InkList {
-	return &InkList{
-		Items:   make(map[InkListItem]int),
+// NewList creates a new empty List.
+func NewList() *List {
+	return &List{
+		Items:   make(map[ListItem]int),
 		Origins: make([]*ListDefinition, 0),
 	}
 }
 
 // Add adds an item to the list.
-func (il *InkList) Add(item InkListItem, value int) {
+func (il *List) Add(item ListItem, value int) {
 	il.Items[item] = value
 }
 
 // Contains checks if the list contains an item.
-func (il *InkList) Contains(item InkListItem) bool {
+func (il *List) Contains(item ListItem) bool {
 	_, ok := il.Items[item]
 	return ok
 }
 
 // Remove removes an item from the list.
-func (il *InkList) Remove(item InkListItem) {
+func (il *List) Remove(item ListItem) {
 	delete(il.Items, item)
 }
 
-// Union returns a new InkList containing items from both lists.
-func (il *InkList) Union(other *InkList) *InkList {
-	newItems := make(map[InkListItem]int)
+// Union returns a new List containing items from both lists.
+func (il *List) Union(other *List) *List {
+	newItems := make(map[ListItem]int)
 	for k, v := range il.Items {
 		newItems[k] = v
 	}
@@ -92,12 +92,12 @@ func (il *InkList) Union(other *InkList) *InkList {
 		}
 	}
 
-	return &InkList{Items: newItems, Origins: newOrigins}
+	return &List{Items: newItems, Origins: newOrigins}
 }
 
-// Subtract returns a new InkList with items from the second list removed from the first.
-func (il *InkList) Subtract(other *InkList) *InkList {
-	newItems := make(map[InkListItem]int)
+// Subtract returns a new List with items from the second list removed from the first.
+func (il *List) Subtract(other *List) *List {
+	newItems := make(map[ListItem]int)
 	for k, v := range il.Items {
 		if !other.Contains(k) {
 			newItems[k] = v
@@ -109,22 +109,22 @@ func (il *InkList) Subtract(other *InkList) *InkList {
 	newOrigins := make([]*ListDefinition, len(il.Origins))
 	copy(newOrigins, il.Origins)
 
-	return &InkList{Items: newItems, Origins: newOrigins}
+	return &List{Items: newItems, Origins: newOrigins}
 }
 
-// Intersect returns a new InkList with items present in both lists.
-func (il *InkList) Intersect(other *InkList) *InkList {
-	newItems := make(map[InkListItem]int)
+// Intersect returns a new List with items present in both lists.
+func (il *List) Intersect(other *List) *List {
+	newItems := make(map[ListItem]int)
 	for k, v := range il.Items {
 		if other.Contains(k) {
 			newItems[k] = v
 		}
 	}
-	return &InkList{Items: newItems, Origins: il.Origins}
+	return &List{Items: newItems, Origins: il.Origins}
 }
 
 // Has returns true if this list contains all items from the other list.
-func (il *InkList) Has(other *InkList) bool {
+func (il *List) Has(other *List) bool {
 	for k := range other.Items {
 		if !il.Contains(k) {
 			return false
@@ -135,13 +135,13 @@ func (il *InkList) Has(other *InkList) bool {
 
 // -- Value Implementation for ListValue --
 
-// ListValue wraps an InkList as a Runtime Value.
+// ListValue wraps an List as a Runtime Value.
 type ListValue struct {
-	value[*InkList]
+	value[*List]
 }
 
 // NewListValue creates a new ListValue.
-func NewListValue(list *InkList) *ListValue {
+func NewListValue(list *List) *ListValue {
 	lv := &ListValue{}
 	lv.Value = list
 	return lv
@@ -189,7 +189,7 @@ func (lv *ListValue) Cast(newType ValueType) (Value, error) {
 
 	case ValueTypeString:
 		type itemPair struct {
-			k InkListItem
+			k ListItem
 			v int
 		}
 		var sorted []itemPair

@@ -12,5 +12,5 @@ func TestPathParsing(t *testing.T) {
 	if p.String() != "0.2.s" {
 		t.Errorf("Expected '0.2.s', got '%s'", p.String())
 	}
-    t.Logf("Components: %v", p.Components)
+	t.Logf("Components: %v", p.Components)
 }

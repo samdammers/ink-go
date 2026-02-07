@@ -6,6 +6,7 @@ type Glue struct {
 	*BaseRuntimeObject
 }
 
+// NewGlue creates a new Glue object.
 func NewGlue() *Glue {
 	return &Glue{
 		BaseRuntimeObject: NewBaseRuntimeObject(),

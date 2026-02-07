@@ -76,7 +76,7 @@ func JTokenToRuntimeObject(token any) (RuntimeObject, error) {
 			return NewControlCommand(CommandTypeStartThread), nil
 		case "->->":
 			return NewControlCommand(CommandTypePopTunnel), nil
-		case "void":
+		case VoidName:
 			return NewVoid(), nil
 		case "end":
 			return NewControlCommand(CommandTypeEnd), nil
@@ -269,7 +269,7 @@ func JMapToRuntimeObject(jMap map[string]any) (RuntimeObject, error) {
 	// List Construction (runtime list creation)
 	if v, ok := jMap["list"]; ok {
 		if listMap, ok := v.(map[string]any); ok {
-			inkList := NewInkList()
+			inkList := NewList()
 			for rawName, val := range listMap {
 				var originName string
 				var itemName string
@@ -291,7 +291,7 @@ func JMapToRuntimeObject(jMap map[string]any) (RuntimeObject, error) {
 					itemName = s
 					itemVal = 1
 				}
-				inkList.Add(NewInkListItem(originName, itemName), itemVal)
+				inkList.Add(NewListItem(originName, itemName), itemVal)
 			}
 			return NewListValue(inkList), nil
 		}
@@ -319,6 +319,7 @@ func JMapToRuntimeObject(jMap map[string]any) (RuntimeObject, error) {
 	return nil, fmt.Errorf("map tokens not fully implemented yet: %v", jMap)
 }
 
+// JObjectToRuntime converts a JSON object to a runtime container.
 func JObjectToRuntime(root map[string]any) (*Container, error) {
 	rootToken, ok := root["root"]
 	if !ok {

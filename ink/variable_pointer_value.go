@@ -24,28 +24,34 @@ func NewVariablePointerValue(variableName string, contextIndex int) *VariablePoi
 	}
 }
 
+// VariableName returns the name of the variable this pointer references.
 func (v *VariablePointerValue) VariableName() string {
 	return v.variableName
 }
 
+// SetVariableName sets the name of the variable this pointer references.
 func (v *VariablePointerValue) SetVariableName(name string) {
 	v.variableName = name
 }
 
+// ContextIndex returns the context index of the variable (e.g. stack frame).
 func (v *VariablePointerValue) ContextIndex() int {
 	return v.contextIndex
 }
 
+// SetContextIndex sets the context index.
 func (v *VariablePointerValue) SetContextIndex(idx int) {
 	v.contextIndex = idx
 }
 
 // Implement Value interface
 
+// GetValueType returns the type of the value (ValueTypeVariablePointer).
 func (v *VariablePointerValue) GetValueType() ValueType {
 	return ValueTypeVariablePointer
 }
 
+// IsTruthy returns true, as variable pointers are considered truthy in Ink.
 func (v *VariablePointerValue) IsTruthy() bool {
 	// Variable pointers are usually truthy unless maybe the name is empty?
 	// Java doesn't override, so it uses basic object truthiness (true).
@@ -54,6 +60,7 @@ func (v *VariablePointerValue) IsTruthy() bool {
 	return true
 }
 
+// Cast returns the value cast to the specified type.
 func (v *VariablePointerValue) Cast(newType ValueType) (Value, error) {
 	if newType == v.GetValueType() {
 		return v, nil
@@ -63,6 +70,7 @@ func (v *VariablePointerValue) Cast(newType ValueType) (Value, error) {
 	return nil, fmt.Errorf("cannot cast VariablePointerValue to type %v", newType)
 }
 
+// GetValueObject returns the value of the object.
 func (v *VariablePointerValue) GetValueObject() any {
 	return v.variableName
 }

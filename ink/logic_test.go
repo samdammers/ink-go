@@ -44,15 +44,8 @@ func TestComplexLogic(t *testing.T) {
 }
 func TestLogicEdgeCases(t *testing.T) {
 	// 1. Mixed Type Equality (1 == 1.0)
-	// Note: We use 1.0 in JSON to ensure it's a float.
-	jsonEq := `{"root": [["ev", 1, 1.1, 0.1, "-", "==", "/ev", "out", "done", null]], "inkVersion": 21}`
-	// Actually simpler: 1 vs 1.0.
-	// But JSON unmarshal might treat 1.0 as 1 if it fits in integer?
-	// To be safe in test data, let's trust the unmasrshaler or use a float that is clearly float but equal?
-	// No, 1.0 is fine in standard JSON readers usually, but let's see.
-	// Let's use logic that forces float: 0.5 + 0.5 == 1
-
-	jsonEq = `{"root": [["ev", 1, 0.5, 0.5, "+", "==", "/ev", "out", "done", null]], "inkVersion": 21}`
+	// Use logic that forces float: 0.5 + 0.5 == 1
+	jsonEq := `{"root": [["ev", 1, 0.5, 0.5, "+", "==", "/ev", "out", "done", null]], "inkVersion": 21}`
 
 	story, err := NewStory(jsonEq)
 	if err != nil {

@@ -27,9 +27,9 @@ func TestPersistenceSave(t *testing.T) {
 			t.Fatalf("Failed to continue story: %v", err)
 		}
 
-		jsonStr, err := story.ToJson()
+		jsonStr, err := story.ToJSON()
 		if err != nil {
-			t.Fatalf("ToJson failed: %v", err)
+			t.Fatalf("ToJSON failed: %v", err)
 		}
 
 		if len(jsonStr) == 0 {
@@ -72,9 +72,9 @@ func TestPersistenceSave(t *testing.T) {
 			t.Fatalf("Expected story to continue")
 		}
 
-		jsonStr, err := story.ToJson()
+		jsonStr, err := story.ToJSON()
 		if err != nil {
-			t.Fatalf("ToJson failed: %v", err)
+			t.Fatalf("ToJSON failed: %v", err)
 		}
 
 		t.Logf("Mid-Flow State JSON: %s", jsonStr)
@@ -103,9 +103,9 @@ func TestPersistenceSave(t *testing.T) {
 		}
 
 		// Save State
-		savedJson, err := story.ToJson()
+		savedJSON, err := story.ToJSON()
 		if err != nil {
-			t.Fatalf("ToJson failed: %v", err)
+			t.Fatalf("ToJSON failed: %v", err)
 		}
 
 		// Create New Story
@@ -115,7 +115,7 @@ func TestPersistenceSave(t *testing.T) {
 		}
 
 		// Load State
-		err = newStory.LoadState(savedJson)
+		err = newStory.LoadState(savedJSON)
 		if err != nil {
 			t.Fatalf("LoadState failed: %v", err)
 		}
@@ -158,7 +158,7 @@ func TestSaveInspection(t *testing.T) {
 	// 1. Define a function with a temp variable (Check #1)
 	// 2. Do some math (Check #2 - Int preservation)
 	// 3. Keep a choice open (Check #3 - Thread Index)
-	inkJson := `
+	inkJSON := `
     {
         "root": [
             {"->": "myFunc"}, 
@@ -175,7 +175,7 @@ func TestSaveInspection(t *testing.T) {
         "inkVersion": 21
     }`
 
-	story, err := ink.NewStory(inkJson)
+	story, err := ink.NewStory(inkJSON)
 	if err != nil {
 		t.Fatalf("Failed to create story: %v", err)
 	}
@@ -186,9 +186,9 @@ func TestSaveInspection(t *testing.T) {
 	}
 
 	// Generate JSON
-	jsonStr, err := story.ToJson()
+	jsonStr, err := story.ToJSON()
 	if err != nil {
-		t.Fatalf("ToJson failed: %v", err)
+		t.Fatalf("ToJSON failed: %v", err)
 	}
 
 	// Check 1: Temporary Variables

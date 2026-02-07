@@ -11,6 +11,7 @@ type NativeFunctionCall struct {
 	NumberOfParameters int
 }
 
+// Native function names.
 const (
 	NativeFunctionCallAdd                 = "+"
 	NativeFunctionCallSubtract            = "-"
@@ -49,8 +50,7 @@ func NewNativeFunctionCall(name string) *NativeFunctionCall {
 	return nf
 }
 
-// NewNativeFunctionCallForOp creates a new NativeFunctionCall from an operator name.
-// This is used when parsing JSON where names might be standard like "+".
+// NativeFunctionCallNumberOfParameters returns the number of parameters for a given native function name.
 func NativeFunctionCallNumberOfParameters(name string) int {
 	switch name {
 	case NativeFunctionCallAdd, NativeFunctionCallSubtract, NativeFunctionCallMultiply, NativeFunctionCallDivide, NativeFunctionCallMod,
@@ -64,6 +64,7 @@ func NativeFunctionCallNumberOfParameters(name string) int {
 	return 0
 }
 
+// Call executes the native function with the given parameters.
 func (n *NativeFunctionCall) Call(parameters []RuntimeObject) (RuntimeObject, error) {
 	if len(parameters) != n.NumberOfParameters {
 		return nil, fmt.Errorf("unexpected number of parameters")
@@ -71,23 +72,23 @@ func (n *NativeFunctionCall) Call(parameters []RuntimeObject) (RuntimeObject, er
 
 	switch n.Name {
 	case NativeFunctionCallAdd:
-		return n.Add(parameters[0], parameters[1])
+		return n.add(parameters[0], parameters[1])
 	case NativeFunctionCallSubtract:
-		return n.Subtract(parameters[0], parameters[1])
+		return n.subtract(parameters[0], parameters[1])
 	case NativeFunctionCallMultiply:
-		return n.Multiply(parameters[0], parameters[1])
+		return n.multiply(parameters[0], parameters[1])
 	case NativeFunctionCallDivide:
-		return n.Divide(parameters[0], parameters[1])
+		return n.divide(parameters[0], parameters[1])
 	case NativeFunctionCallMod:
-		return n.Mod(parameters[0], parameters[1])
+		return n.mod(parameters[0], parameters[1])
 	case NativeFunctionCallEqual:
-		return n.Equal(parameters[0], parameters[1])
+		return n.equal(parameters[0], parameters[1])
 	case NativeFunctionCallGreater:
-		return n.Greater(parameters[0], parameters[1])
+		return n.greater(parameters[0], parameters[1])
 	case NativeFunctionCallLess:
-		return n.Less(parameters[0], parameters[1])
+		return n.less(parameters[0], parameters[1])
 	case NativeFunctionCallNot:
-		return n.Not(parameters[0])
+		return n.not(parameters[0])
 	case NativeFunctionCallListIntersect:
 		if l1, ok1 := parameters[0].(*ListValue); ok1 {
 			if l2, ok2 := parameters[1].(*ListValue); ok2 {
@@ -114,7 +115,7 @@ func (n *NativeFunctionCall) Call(parameters []RuntimeObject) (RuntimeObject, er
 	return nil, fmt.Errorf("operation not implemented: %s", n.Name)
 }
 
-func (n *NativeFunctionCall) CoerceValues(v1, v2 RuntimeObject) (Value, Value, error) {
+func (n *NativeFunctionCall) coerceValues(v1, v2 RuntimeObject) (Value, Value, error) {
 	val1, ok1 := v1.(Value)
 	val2, ok2 := v2.(Value)
 	if !ok1 || !ok2 {
@@ -124,7 +125,7 @@ func (n *NativeFunctionCall) CoerceValues(v1, v2 RuntimeObject) (Value, Value, e
 	return val1, val2, nil
 }
 
-func (n *NativeFunctionCall) Add(v1, v2 RuntimeObject) (RuntimeObject, error) {
+func (n *NativeFunctionCall) add(v1, v2 RuntimeObject) (RuntimeObject, error) {
 	// Special Case: String concatenation
 	// If either is string, convert both to string
 	s1, isStr1 := v1.(*StringValue)
@@ -181,7 +182,7 @@ func (n *NativeFunctionCall) Add(v1, v2 RuntimeObject) (RuntimeObject, error) {
 	}
 
 	// Numeric Addition
-	val1, val2, err := n.CoerceValues(v1, v2)
+	val1, val2, err := n.coerceValues(v1, v2)
 	if err != nil {
 		return nil, err
 	}
@@ -209,7 +210,7 @@ func (n *NativeFunctionCall) Add(v1, v2 RuntimeObject) (RuntimeObject, error) {
 	return nil, fmt.Errorf("cannot add %T and %T", v1, v2)
 }
 
-func (n *NativeFunctionCall) Subtract(v1, v2 RuntimeObject) (RuntimeObject, error) {
+func (n *NativeFunctionCall) subtract(v1, v2 RuntimeObject) (RuntimeObject, error) {
 	// List Subtraction
 	l1, isList1 := v1.(*ListValue)
 	l2, isList2 := v2.(*ListValue)
@@ -217,7 +218,7 @@ func (n *NativeFunctionCall) Subtract(v1, v2 RuntimeObject) (RuntimeObject, erro
 		return NewListValue(l1.Value.Subtract(l2.Value)), nil
 	}
 
-	val1, val2, err := n.CoerceValues(v1, v2)
+	val1, val2, err := n.coerceValues(v1, v2)
 	if err != nil {
 		return nil, err
 	}
@@ -245,8 +246,8 @@ func (n *NativeFunctionCall) Subtract(v1, v2 RuntimeObject) (RuntimeObject, erro
 	return nil, fmt.Errorf("cannot subtract %T and %T", v1, v2)
 }
 
-func (n *NativeFunctionCall) Multiply(v1, v2 RuntimeObject) (RuntimeObject, error) {
-	val1, val2, err := n.CoerceValues(v1, v2)
+func (n *NativeFunctionCall) multiply(v1, v2 RuntimeObject) (RuntimeObject, error) {
+	val1, val2, err := n.coerceValues(v1, v2)
 	if err != nil {
 		return nil, err
 	}
@@ -274,8 +275,8 @@ func (n *NativeFunctionCall) Multiply(v1, v2 RuntimeObject) (RuntimeObject, erro
 	return nil, fmt.Errorf("cannot multiply %T and %T", v1, v2)
 }
 
-func (n *NativeFunctionCall) Divide(v1, v2 RuntimeObject) (RuntimeObject, error) {
-	val1, val2, err := n.CoerceValues(v1, v2)
+func (n *NativeFunctionCall) divide(v1, v2 RuntimeObject) (RuntimeObject, error) {
+	val1, val2, err := n.coerceValues(v1, v2)
 	if err != nil {
 		return nil, err
 	}
@@ -313,8 +314,8 @@ func (n *NativeFunctionCall) Divide(v1, v2 RuntimeObject) (RuntimeObject, error)
 	return NewFloatValue(v1Val / v2Val), nil
 }
 
-func (n *NativeFunctionCall) Mod(v1, v2 RuntimeObject) (RuntimeObject, error) {
-	val1, val2, err := n.CoerceValues(v1, v2)
+func (n *NativeFunctionCall) mod(v1, v2 RuntimeObject) (RuntimeObject, error) {
+	val1, val2, err := n.coerceValues(v1, v2)
 	if err != nil {
 		return nil, err
 	}
@@ -331,7 +332,7 @@ func (n *NativeFunctionCall) Mod(v1, v2 RuntimeObject) (RuntimeObject, error) {
 	return nil, fmt.Errorf("modulo only supported for ints")
 }
 
-func (n *NativeFunctionCall) Equal(v1, v2 RuntimeObject) (RuntimeObject, error) {
+func (n *NativeFunctionCall) equal(v1, v2 RuntimeObject) (RuntimeObject, error) {
 	// Null logic
 	if v1 == nil && v2 == nil {
 		return NewIntValue(1), nil
@@ -401,8 +402,8 @@ func (n *NativeFunctionCall) Equal(v1, v2 RuntimeObject) (RuntimeObject, error) 
 	return NewIntValue(0), nil // Default false
 }
 
-func (n *NativeFunctionCall) Greater(v1, v2 RuntimeObject) (RuntimeObject, error) {
-	val1, val2, err := n.CoerceValues(v1, v2)
+func (n *NativeFunctionCall) greater(v1, v2 RuntimeObject) (RuntimeObject, error) {
+	val1, val2, err := n.coerceValues(v1, v2)
 	if err != nil {
 		return nil, err
 	}
@@ -421,8 +422,8 @@ func (n *NativeFunctionCall) Greater(v1, v2 RuntimeObject) (RuntimeObject, error
 	return NewIntValue(0), nil
 }
 
-func (n *NativeFunctionCall) Less(v1, v2 RuntimeObject) (RuntimeObject, error) {
-	val1, val2, err := n.CoerceValues(v1, v2)
+func (n *NativeFunctionCall) less(v1, v2 RuntimeObject) (RuntimeObject, error) {
+	val1, val2, err := n.coerceValues(v1, v2)
 	if err != nil {
 		return nil, err
 	}
@@ -439,7 +440,7 @@ func (n *NativeFunctionCall) Less(v1, v2 RuntimeObject) (RuntimeObject, error) {
 	return NewIntValue(0), nil
 }
 
-func (n *NativeFunctionCall) Not(v1 RuntimeObject) (RuntimeObject, error) {
+func (n *NativeFunctionCall) not(v1 RuntimeObject) (RuntimeObject, error) {
 	val, ok := v1.(Value)
 	if !ok {
 		return nil, fmt.Errorf("not a value")

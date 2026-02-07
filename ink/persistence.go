@@ -5,8 +5,8 @@ import (
 	"fmt"
 )
 
-// ToJson serializes the story state to a JSON string.
-func (s *Story) ToJson() (string, error) {
+// ToJSON serializes the story state to a JSON string.
+func (s *Story) ToJSON() (string, error) {
 	dto, err := s.stateToDto()
 	if err != nil {
 		return "", err
@@ -243,8 +243,6 @@ func threadToDto(t *CallStackThread) (CallStackThreadDto, error) {
 		resolved := t.PreviousPointer.Resolve()
 		if resolved != nil && resolved.GetPath() != nil {
 			dto.PreviousContentObject = resolved.GetPath().String()
-		} else {
-			// Fallback? Or is it safe to assume resolved?
 		}
 	}
 
@@ -298,7 +296,7 @@ func runtimeObjectToInterface(obj RuntimeObject) (interface{}, error) {
 	case *NativeFunctionCall:
 		return v.Name, nil
 	case *Void:
-		return "void", nil
+		return VoidName, nil
 	case *ChoicePoint:
 		return map[string]interface{}{
 			"*":   v.PathStringOnChoice,
@@ -310,10 +308,10 @@ func runtimeObjectToInterface(obj RuntimeObject) (interface{}, error) {
 }
 
 func inkListToDto(l *ListValue) map[string]interface{} {
-	rawList := l.Value // InkList
+	rawList := l.Value // List
 	listData := make(map[string]int)
 
-	for item, val := range rawList.Items { // Map[InkListItem]int
+	for item, val := range rawList.Items { // Map[ListItem]int
 		// key: OriginName.ItemName
 		key := "?"
 		if item.OriginName != "" {

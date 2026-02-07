@@ -5,6 +5,7 @@ import "fmt"
 // CommandType is the type of a control command.
 type CommandType int
 
+// CommandType constants.
 const (
 	CommandTypeNotSet CommandType = iota
 	CommandTypeEvalStart
@@ -81,6 +82,7 @@ type ControlCommand struct {
 	CommandType CommandType
 }
 
+// NewControlCommand creates a new control command value.
 func NewControlCommand(cmdType CommandType) *ControlCommand {
 	return &ControlCommand{CommandType: cmdType}
 }

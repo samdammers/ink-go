@@ -130,10 +130,7 @@ func (s *Story) restoreFlow(dto *FlowDto, name string) (*Flow, error) {
 	// Restore Choices
 	flow.CurrentChoices = make([]*Choice, len(dto.CurrentChoices))
 	for i, cDto := range dto.CurrentChoices {
-		c, err := s.restoreChoice(&cDto)
-		if err != nil {
-			return nil, err
-		}
+		c := s.restoreChoice(&cDto)
 
 		// Map thread if exists in ChoiceThreads
 		// ChoiceThreads key is originalThreadIndex (int) as string
@@ -154,18 +151,16 @@ func (s *Story) restoreFlow(dto *FlowDto, name string) (*Flow, error) {
 			// If not found in choiceThreads, it might be in the main CallStack?
 			// Java logic: "if (callStack.getThreadWithIndex(c.originalThreadIndex) == null)" -> write it.
 			// So if it IS in the callstack, we should find it there.
-			found := false
 			for _, t := range flow.CallStack.Threads {
 				if t.ThreadIndex == c.OriginalThreadIndex {
 					c.ThreadAtGeneration = t.Copy() // Copy? Or ref? Java does copy or new.
 					// Java: choice.setThreadAtGeneration(foundActiveThread.copy());
-					found = true
 					break
 				}
 			}
-			if !found {
-				// Warn? Or maybe it's just not needed/valid state?
-			}
+			// if !found {
+			// Warn? Or maybe it's just not needed/valid state?
+			// }
 		}
 
 		flow.CurrentChoices[i] = c
@@ -174,7 +169,7 @@ func (s *Story) restoreFlow(dto *FlowDto, name string) (*Flow, error) {
 	return flow, nil
 }
 
-func (s *Story) restoreChoice(dto *ChoiceDto) (*Choice, error) {
+func (s *Story) restoreChoice(dto *ChoiceDto) *Choice {
 	c := NewChoice()
 	c.Text = dto.Text
 	c.Index = dto.Index
@@ -191,7 +186,7 @@ func (s *Story) restoreChoice(dto *ChoiceDto) (*Choice, error) {
 		c.TargetPath = NewPathFromString(dto.TargetPath)
 	}
 
-	return c, nil
+	return c
 }
 
 func (s *Story) restoreCallStack(dto *CallStackDto) (*CallStack, error) {
@@ -283,25 +278,26 @@ func (s *Story) jTokenToRuntimeObject(token interface{}) (RuntimeObject, error) 
 
 		if firstChar == "^" {
 			return NewStringValue(val[1:]), nil
-		} else if val == "\n" {
-			return NewStringValue("\n"), nil
-		} else if val == "<>" {
-			return NewGlue(), nil
-		} else {
-			// Control Command?
-			// Using the mapping from persistence.go
-			for i, name := range controlCommandNames {
-				if name == val {
-					return NewControlCommand(CommandType(i)), nil
-				}
-			}
-
-			// Native Function Call? (Fallback)
-			if val == "L^" {
-				val = "^"
-			} // Special case for escaping ^ function name?
-			return NewNativeFunctionCall(val), nil
 		}
+		if val == "\n" {
+			return NewStringValue("\n"), nil
+		}
+		if val == "<>" {
+			return NewGlue(), nil
+		}
+		// Control Command?
+		// Using the mapping from persistence.go
+		for i, name := range controlCommandNames {
+			if name == val {
+				return NewControlCommand(CommandType(i)), nil
+			}
+		}
+
+		// Native Function Call? (Fallback)
+		if val == "L^" {
+			val = "^"
+		} // Special case for escaping ^ function name?
+		return NewNativeFunctionCall(val), nil
 
 	case bool:
 		return NewBoolValue(val), nil
@@ -335,7 +331,7 @@ func (s *Story) jTokenToRuntimeObject(token interface{}) (RuntimeObject, error) 
 
 		if listData, ok := val["list"]; ok {
 			// listData is a map[string]interface{} where keys are "Origin.Item" and values are int
-			inkList := NewInkList()
+			inkList := NewList()
 			listMap, ok := listData.(map[string]interface{})
 			if !ok {
 				return nil, fmt.Errorf("invalid list data format")
@@ -358,7 +354,7 @@ func (s *Story) jTokenToRuntimeObject(token interface{}) (RuntimeObject, error) 
 					itemName = key
 				}
 
-				item := NewInkListItem(originName, itemName)
+				item := NewListItem(originName, itemName)
 
 				// Resolve correct origin if possible to get canonical case/metadata?
 				// Important: If we have list definitions, we should try to associate the origin.
@@ -366,6 +362,7 @@ func (s *Story) jTokenToRuntimeObject(token interface{}) (RuntimeObject, error) 
 					if def, ok := s.ListDefinitions.Lists[originName]; ok {
 						if _, ok := def.Items[itemName]; ok {
 							// Validated against definition
+							item.OriginName = def.Name // Canonicalize casing?
 						}
 					}
 				}

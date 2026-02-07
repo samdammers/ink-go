@@ -22,7 +22,7 @@ We introduced `persistence_dto.go` containing mirror structs (`StoryStateDto`, `
 
 ### Implementation Pattern
 
-1.  **Serialization (`ToJson`)**:
+1.  **Serialization (`ToJSON`)**:
     - The engine traverses the live Runtime Objects.
     - It maps them to DTOs.
     - Complex objects (Pointers) are resolved to string paths.

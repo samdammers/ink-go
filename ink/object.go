@@ -57,10 +57,9 @@ func (r *BaseRuntimeObject) GetPath() *Path {
 				c, err := parent.GetPathForContent(r)
 				if err == nil {
 					comp = c
-				} else {
-					// Logic error or object not attached correctly?
-					// Debug info
 				}
+				// If err != nil, comp remains empty. This implies the object is attached but
+				// not found in parent's content list. We fallback to empty/root component to avoid crashing.
 			}
 
 			// Path = ParentPath + Component
@@ -74,6 +73,7 @@ func (r *BaseRuntimeObject) GetPath() *Path {
 	return r.path
 }
 
+// GetBase returns the base runtime object.
 func (r *BaseRuntimeObject) GetBase() *BaseRuntimeObject {
 	return r
 }

@@ -81,6 +81,7 @@ func (s *Story) State() *StoryState {
 	return s.state
 }
 
+// GetListDefinitions returns the list definitions for the story.
 func (s *Story) GetListDefinitions() *ListDefinitionsOrigin {
 	return s.ListDefinitions
 }
@@ -185,6 +186,8 @@ func (s *Story) CurrentText() string {
 
 // --- Internal Story Logic ---
 func (s *Story) continueInternal(millisecsLimitAsync float64) error {
+	_ = millisecsLimitAsync // Unused currently, but part of standard structure
+
 	// Ensure root has path? GetPath initializes it if nil.
 	s.MainContent.GetPath()
 
@@ -287,6 +290,7 @@ func (s *Story) processChoice(choicePoint *ChoicePoint) *Choice {
 	return choice
 }
 
+// GetCurrentChoices returns the list of current choices.
 func (s *Story) GetCurrentChoices() []*Choice {
 	return s.state.CurrentChoices
 }
@@ -306,6 +310,7 @@ func (s *Story) ChoosePathString(path string) error {
 	return nil
 }
 
+// ChooseChoiceIndex chooses a choice by its index.
 func (s *Story) ChooseChoiceIndex(index int) error {
 	if index < 0 || index >= len(s.state.CurrentChoices) {
 		return fmt.Errorf("choice out of range")
@@ -419,6 +424,7 @@ func (s *Story) step() error {
 	return nil
 }
 
+// NextContent moves the instruction pointer to the next content.
 func (s *Story) NextContent() error {
 	// Setting previousContentObject is critical for VisitChangedContainersDueToDivert
 	s.state.SetPreviousPointer(s.state.GetCurrentPointer())
@@ -445,19 +451,20 @@ func (s *Story) NextContent() error {
 	if !successfulPointerIncrement {
 		didPop := false
 
-		if s.state.GetCallStack().CanPopType(PushPopTypeFunction) {
+		switch {
+		case s.state.GetCallStack().CanPopType(PushPopTypeFunction):
 			s.state.PopCallStack(PushPopTypeFunction)
 
 			if s.state.GetInExpressionEvaluation() {
 				s.state.PushEvaluationStack(NewVoid())
 			}
 			didPop = true
-		} else if s.state.GetCallStack().CanPop() {
+		case s.state.GetCallStack().CanPop():
 			// Auto-pop ANY other type (Tunnel, etc)
 			// We effectively finished the content of a container that was pushed to the stack
 			s.state.PopCallStack(s.state.GetCallStack().CurrentElement().Type)
 			didPop = true
-		} else {
+		default:
 			s.state.TryExitFunctionEvaluationFromGame()
 		}
 
@@ -470,6 +477,7 @@ func (s *Story) NextContent() error {
 	return nil
 }
 
+// IncrementContentPointer increments the execution pointer.
 func (s *Story) IncrementContentPointer() bool {
 	successfulIncrement := true
 
@@ -477,12 +485,7 @@ func (s *Story) IncrementContentPointer() bool {
 	pointer.Index++
 
 	// Each time we step off the end, we fall out to the next container
-	for {
-		// Check if index is valid for current container
-		if pointer.Container == nil || pointer.Index < len(pointer.Container.Content) {
-			break
-		}
-
+	for pointer.Container != nil && pointer.Index >= len(pointer.Container.Content) {
 		successfulIncrement = false
 
 		parent := pointer.Container.GetParent()
@@ -567,9 +570,7 @@ func (s *Story) PerformLogicAndFlowControl(content RuntimeObject) bool {
 						// Pop from the call stack to exit the tunnel
 						err := s.state.PopCallStack(pushPopType) // Ignore error? Or should we?
 						if err != nil {
-							// If we can't pop, maybe we weren't in a tunnel?
-							// But we still divert.
-							// But standard behavior implies we consume the tunnel context.
+							s.state.AddError(fmt.Sprintf("formatting error: %v", err))
 						}
 						// Divert to the target
 						s.state.SetDivertedPointer(s.PointerAtPath(divertVal.GetTargetPath()))
@@ -672,8 +673,7 @@ func (s *Story) PerformLogicAndFlowControl(content RuntimeObject) bool {
 	if varRef, ok := content.(*VariableReference); ok {
 		val := s.state.GetVariablesState().GetVariableWithName(varRef.Name)
 		if val == nil {
-			// Warning? For now default 0
-			// s.state.AddWarning("Variable not found: " + varRef.Name)
+			s.state.AddWarning("Variable not found: " + varRef.Name)
 			val = NewIntValue(0)
 		}
 		s.state.PushEvaluationStack(val)
@@ -688,8 +688,7 @@ func (s *Story) PerformLogicAndFlowControl(content RuntimeObject) bool {
 		}
 		err := s.state.GetVariablesState().Assign(varAss, val)
 		if err != nil {
-			// Panic or error?
-			// s.state.AddError(err.Error())
+			s.state.AddError(err.Error())
 			return true
 		}
 		return true
@@ -747,7 +746,8 @@ func (s *Story) PerformLogicAndFlowControl(content RuntimeObject) bool {
 			}
 		}
 
-		if divert.HasVariableTarget() {
+		switch {
+		case divert.HasVariableTarget():
 			varName := divert.GetVariableDivertName()
 			varVal := s.state.GetVariablesState().GetVariableWithName(varName)
 
@@ -757,7 +757,7 @@ func (s *Story) PerformLogicAndFlowControl(content RuntimeObject) bool {
 				// Error or other logic
 				s.state.SetDivertedPointer(NullPointer) // Fail safely?
 			}
-		} else if divert.IsExternal {
+		case divert.IsExternal:
 			funcName := divert.GetTargetPath().String() // Usually stored here? Or VariableDivertName?
 			// Checking divert.go: IsExternal is a flag.
 			// If external, args is Divert.ExternalArgs.
@@ -767,7 +767,7 @@ func (s *Story) PerformLogicAndFlowControl(content RuntimeObject) bool {
 				return true // Error handling?
 			}
 			return true
-		} else {
+		default:
 			targetPath := divert.GetTargetPath()
 			if targetPath.IsRelative {
 				context := divert.GetParent()
@@ -793,6 +793,7 @@ func (s *Story) PerformLogicAndFlowControl(content RuntimeObject) bool {
 	return false
 }
 
+// IsTruthy treats a runtime object as a boolean.
 func (s *Story) IsTruthy(obj RuntimeObject) bool {
 	if obj == nil {
 		return false
@@ -803,6 +804,7 @@ func (s *Story) IsTruthy(obj RuntimeObject) bool {
 	return true // Objects are truthy?
 }
 
+// PointerAtPath returns the pointer at a path.
 func (s *Story) PointerAtPath(path *Path) Pointer {
 	if path == nil || len(path.Components) == 0 {
 		return NullPointer
@@ -837,6 +839,7 @@ func (s *Story) PointerAtPath(path *Path) Pointer {
 	return s.PointerAtContent(currentObj)
 }
 
+// PointerAtContent returns the pointer for a content object.
 func (s *Story) PointerAtContent(obj RuntimeObject) Pointer {
 	if obj == nil {
 		return NullPointer

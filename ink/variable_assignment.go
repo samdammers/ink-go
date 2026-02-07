@@ -19,26 +19,32 @@ func NewVariableAssignment(variableName string, isNewDeclaration bool) *Variable
 	}
 }
 
+// VariableName returns the name of the variable to be assigned.
 func (v *VariableAssignment) VariableName() string {
 	return v.variableName
 }
 
+// SetVariableName sets the name of the variable to be assigned.
 func (v *VariableAssignment) SetVariableName(name string) {
 	v.variableName = name
 }
 
+// IsNewDeclaration returns true if this is a new variable declaration.
 func (v *VariableAssignment) IsNewDeclaration() bool {
 	return v.isNewDeclaration
 }
 
+// SetIsNewDeclaration sets whether this is a new variable declaration.
 func (v *VariableAssignment) SetIsNewDeclaration(isNew bool) {
 	v.isNewDeclaration = isNew
 }
 
+// IsGlobal returns true if the variable is global.
 func (v *VariableAssignment) IsGlobal() bool {
 	return v.isGlobal
 }
 
+// SetIsGlobal sets whether the variable is global.
 func (v *VariableAssignment) SetIsGlobal(isGlobal bool) {
 	v.isGlobal = isGlobal
 }

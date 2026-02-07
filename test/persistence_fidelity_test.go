@@ -39,9 +39,9 @@ func TestFloatTypeErasure(t *testing.T) {
 		s.State().VariablesState.GlobalVariables["x"] = ink.NewFloatValue(5.0)
 
 		// Save
-		savedJson, err := s.ToJson()
+		savedJSON, err := s.ToJSON()
 		if err != nil {
-			t.Fatalf("ToJson failed: %v", err)
+			t.Fatalf("ToJSON failed: %v", err)
 		}
 
 		// Load into new story
@@ -50,7 +50,7 @@ func TestFloatTypeErasure(t *testing.T) {
 			t.Fatalf("NewStory for load failed: %v", err)
 		}
 
-		err = s2.LoadState(savedJson)
+		err = s2.LoadState(savedJSON)
 		if err != nil {
 			t.Fatalf("LoadState failed: %v", err)
 		}

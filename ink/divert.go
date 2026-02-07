@@ -30,6 +30,7 @@ func NewDivertWithPushType(stackPushType PushPopType) *Divert {
 	return d
 }
 
+// GetTargetPath returns the target path.
 func (d *Divert) GetTargetPath() *Path {
 	// If path is relative, and we have a target pointer, resolve it?
 	// Java doesn't do much here except returning the path.
@@ -38,18 +39,22 @@ func (d *Divert) GetTargetPath() *Path {
 	return d.TargetPath
 }
 
+// SetTargetPath sets the target path.
 func (d *Divert) SetTargetPath(path *Path) {
 	d.TargetPath = path
 }
 
+// HasVariableTarget returns true if the divert has a variable target.
 func (d *Divert) HasVariableTarget() bool {
 	return d.VariableDivertName != ""
 }
 
+// GetVariableDivertName returns the name of the variable divert.
 func (d *Divert) GetVariableDivertName() string {
 	return d.VariableDivertName
 }
 
+// SetVariableDivertName sets the name of the variable divert.
 func (d *Divert) SetVariableDivertName(name string) {
 	d.VariableDivertName = name
 }

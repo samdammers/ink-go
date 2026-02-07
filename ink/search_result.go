@@ -11,6 +11,7 @@ type SearchResult struct {
 	Approximate bool
 }
 
+// GetContainer returns the container object if the result object is a container.
 func (s SearchResult) GetContainer() *Container {
 	if s.Object == nil {
 		return nil

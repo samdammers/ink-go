@@ -8,6 +8,7 @@ type StatePatch struct {
 	TurnIndices      map[*Container]int
 }
 
+// NewStatePatch creates a new StatePatch.
 func NewStatePatch(toCopy *StatePatch) *StatePatch {
 	sp := &StatePatch{
 		Globals:          make(map[string]RuntimeObject),
@@ -33,10 +34,12 @@ func NewStatePatch(toCopy *StatePatch) *StatePatch {
 	return sp
 }
 
+// GetGlobals returns the global variables in the patch.
 func (sp *StatePatch) GetGlobals() map[string]RuntimeObject {
 	return sp.Globals
 }
 
+// GetChangedVariables returns the names of the changed variables.
 func (sp *StatePatch) GetChangedVariables() []string {
 	keys := make([]string, 0, len(sp.ChangedVariables))
 	for k := range sp.ChangedVariables {

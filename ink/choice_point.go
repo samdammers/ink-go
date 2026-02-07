@@ -24,7 +24,7 @@ func NewChoicePoint(hasCondition bool, hasStartContent bool, hasChoiceOnlyConten
 	}
 }
 
-// PathStringOnChoice returns the path string.
+// GetPathStringOnChoice returns the path string.
 func (c *ChoicePoint) GetPathStringOnChoice() string {
 	return c.PathStringOnChoice
 }
@@ -55,7 +55,7 @@ func (c *ChoicePoint) SetPathStringOnChoice(pathStr string) {
 	c.PathStringOnChoice = pathStr
 }
 
-// Flags needed for parsing
+// SetFlags sets the flags for this choice point.
 func (c *ChoicePoint) SetFlags(flags int) {
 	c.HasCondition = (flags & 1) > 0
 	c.HasStartContent = (flags & 2) > 0
@@ -64,6 +64,7 @@ func (c *ChoicePoint) SetFlags(flags int) {
 	c.OnceOnly = (flags & 16) > 0
 }
 
+// GetFlags returns the integer representation of the choice point's boolean flags.
 func (c *ChoicePoint) GetFlags() int {
 	flags := 0
 	if c.HasCondition {

@@ -21,21 +21,18 @@ func NewFlow(name string, story *Story) *Flow {
 
 // Copy creates a deep copy of the Flow.
 func (f *Flow) Copy() *Flow {
-	copy := &Flow{
+	cp := &Flow{
 		Name:           f.Name,
 		CallStack:      f.CallStack.Copy(),
 		OutputStream:   make([]RuntimeObject, len(f.OutputStream)),
 		CurrentChoices: make([]*Choice, len(f.CurrentChoices)),
 	}
 	// Copy OutputStream (RuntimeObjects are shared except simple values which are effectively immutable)
-	for i, obj := range f.OutputStream {
-		copy.OutputStream[i] = obj
-	}
+	copy(cp.OutputStream, f.OutputStream)
+
 	// Copy Choices
-	for i, choice := range f.CurrentChoices {
-		// Choices references should be fine? Or do we deep copy choices?
-		// Choices are RuntimeObjects.
-		copy.CurrentChoices[i] = choice
-	}
-	return copy
+	// Choices references should be fine? Or do we deep copy choices?
+	// Choices are RuntimeObjects.
+	copy(cp.CurrentChoices, f.CurrentChoices)
+	return cp
 }
