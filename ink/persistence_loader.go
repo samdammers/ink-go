@@ -142,6 +142,14 @@ func (s *Story) restoreFlow(dto *FlowDto, name string) (*Flow, error) {
 		// In DTO we have them in parallel.
 
 		if threadDto, ok := dto.ChoiceThreads[fmt.Sprintf("%d", c.OriginalThreadIndex)]; ok {
+			threadDto := threadDto // G601 implied if we passed pointer, but we pass &threadDto which is value from map?
+			// Wait, looping range over map? No, map access returns copy.
+			// But wait, the issue is G601: Implicit memory aliasing in for loop.
+			// The loop is `for i, cDto := range dto.CurrentChoices`.
+			// The lines flagged were:
+			// 133: c := s.restoreChoice(&cDto)
+			//
+			// 198 (different function, likely restoreThread call in restoreCallStack loop)
 			thread, err := s.restoreThread(&threadDto)
 			if err != nil {
 				return nil, fmt.Errorf("failed to restore choice thread %d: %w", c.OriginalThreadIndex, err)

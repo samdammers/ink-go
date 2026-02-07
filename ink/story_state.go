@@ -3,7 +3,6 @@ package ink
 import (
 	"fmt"
 	"math/rand"
-	"time"
 )
 
 // StoryState represents the state of the story.
@@ -56,8 +55,7 @@ func NewStoryState(story *Story) *StoryState {
 	}
 
 	// Seed random
-	rand.Seed(time.Now().UnixNano())
-	ss.StorySeed = rand.Intn(100)
+	ss.StorySeed = rand.Intn(100) //nolint:gosec // Weak RNG is sufficient for story seed
 	ss.PreviousRandom = 0
 
 	ss.GoToStart()
