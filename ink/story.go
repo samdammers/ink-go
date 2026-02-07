@@ -62,18 +62,28 @@ func NewStory(jsonString string) (*Story, error) {
 
 	story.state = NewStoryState(story)
 
-	story.ResetGlobals()
+	err = story.ResetGlobals()
+	if err != nil {
+		return nil, err
+	}
 
 	return story, nil
 }
 
 // ResetGlobals runs the global declaration section to initialize variables.
-func (s *Story) ResetGlobals() {
+func (s *Story) ResetGlobals() error {
 	if _, ok := s.MainContent.NamedContent["global decl"]; ok {
-		s.ChoosePathString("global decl")
-		s.ContinueMaximally()
+		err := s.ChoosePathString("global decl")
+		if err != nil {
+			return err
+		}
+		_, err = s.ContinueMaximally()
+		if err != nil {
+			return err
+		}
 	}
 	s.state.GoToStart()
+	return nil
 }
 
 // State returns the current StoryState.
@@ -453,7 +463,10 @@ func (s *Story) NextContent() error {
 
 		switch {
 		case s.state.GetCallStack().CanPopType(PushPopTypeFunction):
-			s.state.PopCallStack(PushPopTypeFunction)
+			err := s.state.PopCallStack(PushPopTypeFunction)
+			if err != nil {
+				s.state.AddError(fmt.Sprintf("Failed to pop callstack: %v", err))
+			}
 
 			if s.state.GetInExpressionEvaluation() {
 				s.state.PushEvaluationStack(NewVoid())
@@ -462,7 +475,10 @@ func (s *Story) NextContent() error {
 		case s.state.GetCallStack().CanPop():
 			// Auto-pop ANY other type (Tunnel, etc)
 			// We effectively finished the content of a container that was pushed to the stack
-			s.state.PopCallStack(s.state.GetCallStack().CurrentElement().Type)
+			err := s.state.PopCallStack(s.state.GetCallStack().CurrentElement().Type)
+			if err != nil {
+				s.state.AddError(fmt.Sprintf("Failed to pop callstack: %v", err))
+			}
 			didPop = true
 		default:
 			s.state.TryExitFunctionEvaluationFromGame()

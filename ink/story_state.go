@@ -1,6 +1,7 @@
 package ink
 
 import (
+	"fmt"
 	"math/rand"
 	"time"
 )
@@ -149,7 +150,10 @@ func (ss *StoryState) PopCallStack(popType PushPopType) error {
 // TryExitFunctionEvaluationFromGame tries to exit function evaluation from game.
 func (ss *StoryState) TryExitFunctionEvaluationFromGame() {
 	if ss.GetCallStack().CanPopType(PushPopTypeFunctionEvaluationFromGame) {
-		ss.GetCallStack().Pop(PushPopTypeFunctionEvaluationFromGame)
+		err := ss.GetCallStack().Pop(PushPopTypeFunctionEvaluationFromGame)
+		if err != nil {
+			ss.AddError(fmt.Sprintf("Failed to pop callstack: %v", err))
+		}
 	}
 }
 
