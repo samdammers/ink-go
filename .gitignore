@@ -1,0 +1,7 @@
+_AI_CHECKPOINT.md
+dependency_graph.txt
+.vscode/
+agent_instructions.md
+test_data/
+coverage.out
+integration_coverage.out

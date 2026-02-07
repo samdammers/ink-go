@@ -1,0 +1,162 @@
+version: "2"
+
+run:
+  timeout: 5m
+  tests: true
+
+linters:
+  enable:
+    # Default linters
+    - errcheck # Check for unchecked errors
+    - govet # Reports suspicious constructs
+    - ineffassign # Detects ineffectual assignments
+    - staticcheck # Static analysis checks (includes gosimple and stylecheck in v2)
+    - unused # Checks for unused constants, variables, functions and types
+
+    # Additional recommended linters
+    - bodyclose # Checks whether HTTP response body is closed successfully
+    - dupl # Detects code duplication
+    - gocognit # Computes and checks the cognitive complexity of functions
+    - goconst # Finds repeated strings that could be replaced by a constant
+    - gocritic # Provides diagnostics that check for bugs, performance and style issues
+    - gocyclo # Computes and checks the cyclomatic complexity of functions
+    - goprintffuncname # Checks that printf-like functions are named with f at the end
+    - gosec # Inspects source code for security problems
+    - misspell # Finds commonly misspelled English words in comments
+    - nakedret # Finds naked returns in functions greater than a specified function length
+    - nolintlint # Reports ill-formed or insufficient nolint directives
+    - prealloc # Finds slice declarations that could potentially be pre-allocated
+    - revive # Fast, configurable, extensible, flexible, and beautiful linter for Go
+    - unconvert # Remove unnecessary type conversions
+    - unparam # Reports unused function parameters
+    - whitespace # Detection of leading and trailing whitespace
+
+  exclusions:
+    paths:
+      - "vendor"
+      - "testdata"
+    generated: strict
+    rules:
+      # Exclude some linters from running on test files
+      - path: _test\.go
+        linters:
+          - gocyclo
+          - gocognit
+          - errcheck
+          - dupl
+          - gosec
+          - goconst
+
+      # Exclude known linters from partially hard-vendored code
+      - path: internal/hmac/
+        linters:
+          - gocritic
+          - staticcheck
+          - gosec
+
+  settings:
+    errcheck:
+      check-type-assertions: false
+      check-blank: false
+      exclude-functions:
+        - io/ioutil.ReadFile
+        - io.Copy(*bytes.Buffer)
+        - io.Copy(os.Stdout)
+
+    govet:
+      enable-all: true
+      disable:
+        - fieldalignment
+        - shadow
+
+    gocyclo:
+      min-complexity: 20
+
+    gocognit:
+      min-complexity: 20
+
+    dupl:
+      threshold: 100
+
+    goconst:
+      min-len: 3
+      min-occurrences: 3
+
+    misspell:
+      locale: US
+
+    nakedret:
+      max-func-lines: 30
+
+    prealloc:
+      simple: true
+      range-loops: true
+      for-loops: false
+
+    revive:
+      confidence: 0.8
+      rules:
+        - name: blank-imports
+        - name: context-as-argument
+        - name: context-keys-type
+        - name: dot-imports
+        - name: error-return
+        - name: error-strings
+        - name: error-naming
+        - name: exported
+        - name: if-return
+        - name: increment-decrement
+        - name: var-naming
+        - name: var-declaration
+        - name: package-comments
+        - name: range
+        - name: receiver-naming
+        - name: time-naming
+        - name: unexported-return
+        - name: indent-error-flow
+        - name: errorf
+        - name: empty-block
+        - name: superfluous-else
+        - name: unused-parameter
+          arguments:
+            - allowRegex: "^ctx$"
+        - name: unreachable-code
+        - name: redefines-builtin-id
+
+    staticcheck:
+      checks:
+        [
+          "all",
+          "-ST1000",
+          "-ST1003",
+          "-ST1016",
+          "-ST1020",
+          "-ST1021",
+          "-ST1022",
+        ]
+
+    gosec:
+      severity: medium
+      confidence: medium
+      excludes:
+        - G104 # Audit errors not checked - covered by errcheck
+        - G204 # Audit use of command execution - sometimes necessary
+
+    unparam:
+      check-exported: false
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  new: false
+  fix: false
+
+output:
+  formats:
+    text:
+      path: stdout
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
