@@ -1,0 +1,29 @@
+version: 2
+updates:
+  # 1. Configuration for Go Modules (your library dependencies)
+  - package-ecosystem: "gomod"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Australia/Sydney" # Adjust to your preference
+    # This block groups every go module update into a single PR
+    groups:
+      all-go-dependencies:
+        patterns:
+          - "*"
+
+  # 2. Configuration for GitHub Actions (your CI/CD workflows)
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Australia/Sydney"
+    # This block groups every action update (checkout, setup-go, etc.)
+    groups:
+      all-github-actions:
+        patterns:
+          - "*"
