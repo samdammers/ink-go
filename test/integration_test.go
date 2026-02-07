@@ -84,61 +84,7 @@ func TestVictoryLap(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Runtime Error at Step 2: %v", err)
 	}
-	// Note: Standard Ink output for lists depends on origin name.
-	// We accept "Inventory.Sword" (Standard) or "Sword" (Simple).
-	// We matched simple implementation: "Inventory.Sword"
-	if text != "In Shop. \nInventory.Sword" && text != "In Shop. \nSword" && text != "In Shop. \nInventory.Sword\n" && text != "In Shop. Sword\n" && text != "In Shop. Sword" {
-		// Note from output: "In Shop. \nInventory.Sword".
-		// Wait, did "out" add a newline? No.
-		// So "In Shop. \n" + "Inventory.Sword".
-		// Next loop continues?
-		// My Continue logic stops at *first* newline?
-		// "In Shop. \n" -> Stop.
-		// Next Continue -> "Inventory.Sword".
-		// Oh.
-		// If "In Shop." and "Inventory.Sword" are separate outputs?
-		// "ev ... out" produces text.
-		// If NO newline after "Inventory.Sword", it just sits there?
-		// Then Continue runs until what?
-		// "->->" pops tunnel. Returns to root.
-		// Root has "^End.".
-		// It continues... until End. \n.
-		// So Step 2 text will be: "Inventory.SwordEnd. \n".
-		// Unless I assume Tunnel Return *doesn't* stop?
-		// It doesn't.
 
-		// To fix Step 2 to be isolated "In Shop...", I added "done" in "shop".
-		// "done" stops execution.
-		// But "done" kills the thread? Or just stops?
-		// Normal "done" kills thread / finishes flow.
-		// Tunnel should NOT assume "done". it should "->->".
-		// My JSON: `... "->->", "done"`.
-		// The "done" is unreachable if "->->" works.
-		// If "->->" works, it goes to `End.`.
-
-		// So output will merge: `In Shop. \n` -> Stop.
-		// Next: `Inventory.Sword` + `End. \n`. -> Stop.
-		// This splits Step 2 and Step 3 strangely.
-
-		// Fix: Add `\n` after `out` in Shop?
-		// `... "out", "\n", "->->"`
-		// Then Step 2: "Inventory.Sword\n".
-		// Step 3: "End. \n".
-
-		// But "In Shop. \n" is handled?
-		// "In Shop. \n" -> continues?
-		// My logic: `if s.state.OutputStreamEndsInNewline() { break }`.
-		// So "In Shop. \n" STOPS.
-		// Then next `Continue` -> "Inventory.Sword\n".
-
-		// So Step 2 expectation "In Shop. Inventory.Sword" is WRONG if newlines are present.
-		// I must align the test to this single-line behavior.
-
-		// Or I remove `\n` from "In Shop."?
-		// `["^In Shop. ", "ev" ... "out", "\n", "->->"]`
-		// Output: "In Shop. Inventory.Sword\n".
-		// This matches "Step 2" semantics.
-	}
 	if text != "In Shop. Inventory.Sword\n" && text != "In Shop. Sword\n" && text != "In Shop. Sword" {
 		t.Errorf("Step 2 Fail: Expected 'In Shop. Inventory.Sword\\n' or 'In Shop. Sword', got %q", text)
 	}
