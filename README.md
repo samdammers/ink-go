@@ -1,4 +1,27 @@
-# go-ink
+<p align="center">
+  <img src="docs/images/ink-go.jpg" alt="ink-go logo" width="600">
+</p>
+
+<h1 align="center">ink-go</h1>
+
+<p align="center">
+  <b>A strictly typed, idiomatic Go port of the Ink narrative runtime.</b>
+</p>
+
+<p align="center">
+  <a href="https://github.com/samdammers/ink-go/actions/workflows/go.yml">
+    <img src="https://github.com/samdammers/ink-go/actions/workflows/go.yml/badge.svg" alt="Go Build">
+  </a>
+  &nbsp; <a href="https://pkg.go.dev/github.com/samdammers/ink-go">
+    <img src="https://pkg.go.dev/badge/github.com/samdammers/ink-go.svg" alt="Go Reference">
+  </a>
+  &nbsp;
+  <a href="https://goreportcard.com/report/github.com/samdammers/ink-go">
+    <img src="https://goreportcard.com/badge/github.com/samdammers/ink-go" alt="Go Report Card">
+  </a>
+  </p>
+
+---
 
 A native Go runtime for the **Ink** narrative scripting language.
 
