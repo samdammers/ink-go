@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/samdammers/go-ink/ink"
+	"github.com/samdammers/ink-go/ink"
 )
 
 // Tests a sample of the standard ink conformance tests to gauge compliance.

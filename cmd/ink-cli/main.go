@@ -7,7 +7,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/samdammers/go-ink/ink"
+	"github.com/samdammers/ink-go/ink"
 )
 
 func main() {
