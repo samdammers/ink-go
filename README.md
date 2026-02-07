@@ -12,6 +12,27 @@ We owe a significant debt of gratitude to **[bladecoder](https://github.com/blad
 
 We also acknowledge **[Inkle](https://www.inklestudios.com/)** for creating the Ink language and the original C# runtime that started it all.
 
+### 📄 Why a Go Port?
+
+The Ink language is an incredibly powerful tool for non-linear storytelling, but the official runtime ecosystem often forces a binary choice: build a heavy C# project in Unity, or build a web-based game in JavaScript.
+
+I built ink-go to strike a balance between those two extremes.
+1. The "Middle Path" (Unity vs. Ren'Py)
+
+    Not Unity: Unity is a massive engine with significant overhead. For many 2D or text-heavy games, bringing in the entire Unity/C# ecosystem just to parse Ink stories feels like overkill.
+
+    Not Ren'Py: While Ren'Py is great for Visual Novels, it locks you into its specific Python-based architecture. I wanted the narrative freedom of Ink without being constrained to the visual novel genre or the Ren'Py engine limitations.
+
+2. Control & Familiarity
+
+    Go-Native: I wanted to write game logic in a language I enjoy and am familiar with—Go.
+
+    Engine Agnostic: By porting the full runtime to pure Go, I can integrate Ink into any Go-based game framework (like Ebitengine) completely natively. There is no CGO bridging, no embedded C# VM, and no "black box" engine logic.
+
+3. Lightweight & Portable
+
+    Single Binary: The result is a high-performance narrative engine that compiles into a single, static binary. It runs anywhere Go runs, with zero dependencies on external runtimes or frameworks.
+
 ## ✅ Conformance
 
 `go-ink` is built to be strictly compliant with the Ink language specification. It has been verified against the standard **Ink Conformance Test Suite**.
