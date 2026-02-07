@@ -76,6 +76,11 @@ func (s *Story) ResetGlobals() {
 	s.state.GoToStart()
 }
 
+// State returns the current StoryState.
+func (s *Story) State() *StoryState {
+	return s.state
+}
+
 func (s *Story) GetListDefinitions() *ListDefinitionsOrigin {
 	return s.ListDefinitions
 }
@@ -199,6 +204,9 @@ func (s *Story) continueInternal(millisecsLimitAsync float64) error {
 	// Move generated choices to current choices
 	if len(s.state.GeneratedChoices) > 0 {
 		s.state.CurrentChoices = append(s.state.CurrentChoices, s.state.GeneratedChoices...)
+		if s.state.CurrentFlow != nil {
+			s.state.CurrentFlow.CurrentChoices = append(s.state.CurrentFlow.CurrentChoices, s.state.GeneratedChoices...)
+		}
 		s.state.GeneratedChoices = make([]*Choice, 0)
 	}
 
@@ -292,6 +300,9 @@ func (s *Story) ChoosePathString(path string) error {
 	}
 	s.state.SetCurrentPointer(pointer)
 	s.state.CurrentChoices = make([]*Choice, 0)
+	if s.state.CurrentFlow != nil {
+		s.state.CurrentFlow.CurrentChoices = make([]*Choice, 0)
+	}
 	return nil
 }
 
@@ -307,6 +318,9 @@ func (s *Story) ChooseChoiceIndex(index int) error {
 	// Divert
 	s.state.SetCurrentPointer(s.PointerAtPath(choice.TargetPath))
 	s.state.CurrentChoices = make([]*Choice, 0)
+	if s.state.CurrentFlow != nil {
+		s.state.CurrentFlow.CurrentChoices = make([]*Choice, 0)
+	}
 
 	return nil
 }

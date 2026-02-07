@@ -29,6 +29,27 @@ func (c *ChoicePoint) GetPathStringOnChoice() string {
 	return c.PathStringOnChoice
 }
 
+// Flags returns the flags for serialization.
+func (c *ChoicePoint) Flags() int {
+	flags := 0
+	if c.HasCondition {
+		flags |= 1
+	}
+	if c.HasStartContent {
+		flags |= 2
+	}
+	if c.HasChoiceOnlyContent {
+		flags |= 4
+	}
+	if c.IsInvisibleDefault {
+		flags |= 8
+	}
+	if c.OnceOnly {
+		flags |= 16
+	}
+	return flags
+}
+
 // SetPathStringOnChoice sets the path string.
 func (c *ChoicePoint) SetPathStringOnChoice(pathStr string) {
 	c.PathStringOnChoice = pathStr

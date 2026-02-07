@@ -81,6 +81,11 @@ func (sv *StringValue) IsTruthy() bool {
 	return len(sv.Value) > 0
 }
 
+// GetIsNewline returns true if the string is exactly a newline.
+func (sv *StringValue) GetIsNewline() bool {
+	return sv.isNewline
+}
+
 // Cast converts the string to a new type.
 func (sv *StringValue) Cast(newType ValueType) (Value, error) {
 	if newType == sv.GetValueType() {

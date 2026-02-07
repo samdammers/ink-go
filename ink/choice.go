@@ -18,11 +18,14 @@ type Choice struct {
 
 	// The path to the original choice point.
 	SourcePath string
-	
+
+	// The thread where this choice was generated
+	ThreadAtGeneration *CallStackThread
+
 	// Used in JSON deserialisation
 	OriginalThreadIndex int
 	IsInvisibleDefault  bool
-	
+
 	Tags []string
 }
 
