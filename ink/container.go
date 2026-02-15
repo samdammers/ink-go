@@ -102,6 +102,37 @@ func (c *Container) ContentAtPathComponent(component Component) (RuntimeObject, 
 	return nil, fmt.Errorf("content not found for name: %s", component.Name)
 }
 
+// GetPath gets the path of this object in the story hierarchy.
+// Overridden to provide correct type information to parent.
+//
+//nolint:dupl // Logic is identical to BaseRuntimeObject.GetPath but must be overridden to pass *Container (c) instead of *BaseRuntimeObject (r)
+func (c *Container) GetPath() *Path {
+	if c.path == nil {
+		if c.parent == nil {
+			c.path = NewPath()
+		} else {
+			// Find component of this object in parent
+			parent, ok := c.parent.(*Container)
+			var comp Component
+			if ok && parent != nil {
+				// Pass 'c' (Container) instead of base object so INamedContent check works
+				cmp, err := parent.GetPathForContent(c)
+				if err == nil {
+					comp = cmp
+				}
+			}
+
+			// Path = ParentPath + Component
+			if parent != nil {
+				c.path = parent.GetPath().PathByAppendingComponent(comp)
+			} else {
+				c.path = NewPath()
+			}
+		}
+	}
+	return c.path
+}
+
 // GetPathForContent returns the path component for a child object.
 func (c *Container) GetPathForContent(content RuntimeObject) (Component, error) {
 	// 1. Check NamedContent

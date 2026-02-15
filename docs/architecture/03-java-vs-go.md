@@ -28,6 +28,16 @@ We use **Composition** and **Interfaces**.
   ```
 - **Impact**: You cannot cast a `StringValue` to a `BaseRuntimeObject`. You must access the interface methods. Type assertions (`obj.(*IntValue)`) are used frequently where Java would use `instanceof`.
 
+### Pitfall: Method Promotion vs Virtual Dispatch
+
+In Java, method calls on `this` always dispatch to the runtime type (e.g., calling `getPath()` in `RTObject` uses the subclass implementation if overridden).
+
+In Go, embedded struct methods operate on the **embedded receiver**, not the outer struct.
+
+- **Issue**: If `Container` embeds `BaseRuntimeObject` and `BaseRuntimeObject` has a method `GetPath()`, calling `container.GetPath()` invokes `BaseRuntimeObject.GetPath()`. Inside that method, the receiver is `*BaseRuntimeObject`, not `*Container`.
+- **Consequence**: Interface checks (e.g., `obj.(INamedContent)`) fail because `BaseRuntimeObject` doesn't implement the interface—only the outer `Container` does.
+- **Solution**: Methods relying on the outer type's identity or interfaces must be manually overridden on the outer struct (e.g., `func (c *Container) GetPath()`) to ensure the receiver is the full object.
+
 ## 2. Persistence: The DTO Pattern
 
 ### Java/C# Approach

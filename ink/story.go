@@ -290,8 +290,6 @@ func (s *Story) processChoice(choicePoint *ChoicePoint) *Choice {
 	relPath := NewPathFromString(choicePoint.PathStringOnChoice)
 	choice.TargetPath = cpPath.PathByAppendingPath(relPath)
 
-	fmt.Printf("DEBUG: ProcessChoice: CP Path: %s, Rel: %s, Result: %s\n", cpPath, relPath, choice.TargetPath)
-
 	choice.Index = len(s.state.GeneratedChoices)
 	choice.SourcePath = cpPath.String()
 
@@ -603,6 +601,26 @@ func (s *Story) PointerAtPath(path *Path) Pointer {
 		container, isContainer := currentObj.(*Container)
 
 		if !isContainer {
+			// PATCH: Approximate Path Resolution
+			// The Ink compiler sometimes generates paths that imply a hierarchical structure
+			// (e.g., "0.0.c-0") where the runtime object structure is actually flattened
+			// (e.g., the object at "0.0" is a leaf StringValue, and "c-0" is its sibling).
+			//
+			// In the reference C# and Java implementations, this overlap is handled by a "fuzzy"
+			// or "approximate" resolution where it stops at the leaf node and returns it,
+			// or (in this specific fix) we attempt to find the target component in the *parent* container,
+			// effectively treating the leaf node as transparent context.
+			//
+			// This is critical for resolving choices nested in simple flow gathering points.
+			parent := currentObj.GetParent()
+			if parentContainer, ok := parent.(*Container); ok {
+				child, err := parentContainer.ContentAtPathComponent(component)
+				if err == nil {
+					currentObj = child
+					continue
+				}
+			}
+
 			fmt.Printf("DEBUG: PointerAtPath failed. CurrentObj is not container. Type: %T. Path: %s. Component: %s\n", currentObj, path.String(), component.String())
 			return NullPointer
 		}
