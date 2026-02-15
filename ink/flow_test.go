@@ -22,24 +22,9 @@ func TestTunnelFlow(t *testing.T) {
 		t.Fatalf("Continue failed: %v", err)
 	}
 
-	// Expect "In tunnel."
-	// Note: Engine might continue running until it hits a stop?
-	// Wait, "In tunnel." is followed by "\n", then "->->".
-	// The "->->" pops. Then "After tunnel." follows.
-	// If the engine behaves like a standard run, it might produce ALL text if constraints are not met?
-	// But usually Step() stops at Newlines if they are significant?
-	// ink-cli usually prints line by line.
-	// However, standard Continue() runs until CanContinue() is false or it yields text?
-	// Actually, Continue() runs `ContinueInternal` which loops `CanContinueInternal`.
-	// `GenerateChoices` logic promotes choices.
-	// `story.go`: `ContinueInternal` loops `Step()`.
-
-	// Checking `Step` logic:
-	// It adds content to output stream.
-	// It halts if `shouldAddToStream` and `CurrentPointer` becomes bad? No.
-	// Ah, pure text story runs until end or choice.
-
-	// So for this JSON, it should run:
+	// Expect "In tunnel." followed by "After tunnel."
+	// The engine processes the tunnel, returns, and continues until 'done'.
+	// Detailed execution flow:
 	// -> tunnel (Process)
 	// ^In tunnel. (Output)
 	// \n (Output)

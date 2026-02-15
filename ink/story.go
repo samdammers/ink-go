@@ -26,10 +26,6 @@ func NewStory(jsonString string) (*Story, error) {
 		return nil, fmt.Errorf("failed to unmarshal json: %w", err)
 	}
 
-	// Wait, cannot reference story before declaration.
-	// We allocated `story` variable after parsing.
-	// Refactor:
-
 	listDefsOrigin := NewListDefinitionsOrigin(nil)
 	if listDefsToken, ok := root["listDefs"]; ok {
 		if listDefsMap, ok := listDefsToken.(map[string]any); ok {
@@ -254,7 +250,7 @@ func (s *Story) processChoice(choicePoint *ChoicePoint) *Choice {
 
 	startText := ""
 	choiceOnlyText := ""
-	// Tags TODO
+	// TODO: Implement support for choice tags.
 
 	// 2. Choice Only Content (Pop from stack)
 	if choicePoint.HasChoiceOnlyContent {

@@ -143,33 +143,22 @@ func (s *Story) restoreFlow(dto *FlowDto, name string) (*Flow, error) {
 		// In DTO we have them in parallel.
 
 		if threadDto, ok := dto.ChoiceThreads[fmt.Sprintf("%d", c.OriginalThreadIndex)]; ok {
-			threadDto := threadDto // G601 implied if we passed pointer, but we pass &threadDto which is value from map?
-			// Wait, looping range over map? No, map access returns copy.
-			// But wait, the issue is G601: Implicit memory aliasing in for loop.
-			// The loop is `for i, cDto := range dto.CurrentChoices`.
-			// The lines flagged were:
-			// 133: c := s.restoreChoice(&cDto)
-			//
-			// 198 (different function, likely restoreThread call in restoreCallStack loop)
+			threadDto := threadDto // Capture loop variable or map lookups to avoid aliasing issues
 			thread, err := s.restoreThread(&threadDto)
 			if err != nil {
 				return nil, fmt.Errorf("failed to restore choice thread %d: %w", c.OriginalThreadIndex, err)
 			}
 			c.ThreadAtGeneration = thread
 		} else {
-			// If not found in choiceThreads, it might be in the main CallStack?
+			// If not found in choiceThreads, it might be in the main CallStack
 			// Java logic: "if (callStack.getThreadWithIndex(c.originalThreadIndex) == null)" -> write it.
 			// So if it IS in the callstack, we should find it there.
 			for _, t := range flow.CallStack.Threads {
 				if t.ThreadIndex == c.OriginalThreadIndex {
-					c.ThreadAtGeneration = t.Copy() // Copy? Or ref? Java does copy or new.
-					// Java: choice.setThreadAtGeneration(foundActiveThread.copy());
+					c.ThreadAtGeneration = t.Copy() // Java: choice.setThreadAtGeneration(foundActiveThread.copy());
 					break
 				}
 			}
-			// if !found {
-			// Warn? Or maybe it's just not needed/valid state?
-			// }
 		}
 
 		flow.CurrentChoices[i] = c
@@ -185,11 +174,7 @@ func (s *Story) restoreChoice(dto *ChoiceDto) *Choice {
 	c.SourcePath = dto.OriginalChoicePath
 	c.OriginalThreadIndex = dto.OriginalThreadIndex
 	c.Tags = dto.Tags
-	c.IsInvisibleDefault = false // Not in DTO? Check Java. Ah, Flags on ChoicePoint, but Choice?
-	// Choice DTO doesn't seem to have IsInvisibleDefault in Java WriteJson...
-	// Wait, Java Json values: text, index, originalChoicePath, originalThreadIndex, targetPath.
-	// Where is IsInvisibleDefault? It's on ChoicePoint which is static.
-	// The Choice object is dynamic.
+	c.IsInvisibleDefault = false // Default to false as it is not persisted in the DTO
 
 	if dto.TargetPath != "" {
 		c.TargetPath = NewPathFromString(dto.TargetPath)

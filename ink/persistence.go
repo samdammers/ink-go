@@ -207,12 +207,7 @@ func threadToDto(t *CallStackThread) CallStackThreadDto {
 
 	if !t.PreviousPointer.IsNull() {
 		// Java: previousPointer.resolve().getPath().toString()
-		// Wait, PreviousPointer might be pointing to something specific?
-		// Usually resolve() handles index.
-		// If pointer is standard (Container + Index), we want the path to the Object pointed to.
-		// If index is -1, it's the container's path.
-		// If index >= 0, it's container.path + index.
-		// Pointer.Resolved() returns RuntimeObject. Object.Path.String().
+		// We resolve the pointer to get the target object, then get its path.
 		resolved := t.PreviousPointer.Resolve()
 		if resolved != nil && resolved.GetPath() != nil {
 			dto.PreviousContentObject = resolved.GetPath().String()
