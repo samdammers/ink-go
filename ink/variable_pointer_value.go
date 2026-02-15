@@ -12,10 +12,7 @@ type VariablePointerValue struct {
 // NewVariablePointerValue creates a new VariablePointerValue.
 func NewVariablePointerValue(variableName string, contextIndex int) *VariablePointerValue {
 	if contextIndex == 0 {
-		contextIndex = -1 // Default to unknown/generic if 0 passed? Java default is -1.
-		// Wait, Java constructor:
-		// public VariablePointerValue(String variableName) { this(variableName, -1); }
-		// public VariablePointerValue(String variableName, int contextIndex) { ... }
+		contextIndex = -1 // Default to unknown/generic if 0 passed. Java default is -1.
 	}
 	return &VariablePointerValue{
 		BaseRuntimeObject: NewBaseRuntimeObject(),

@@ -86,28 +86,14 @@ func TestFlowLogicGates(t *testing.T) {
 		}
 
 		// Expect "A".
-		// Main forks. Main hits "done".
-		// ThreadTarget runs "A". Hits "done".
-		// Both threads die.
-		// Wait, if Main hits "done", it stops execution if it's the main thread?
-		// Standard Ink "done" stops the story.
-		// If Main dies, thread might continue if "done" only kills current thread?
-		// "done" is CommandTypeDone.
-		// Logic: if CanPopThread, Pop; else Stop.
-		// We have 2 threads.
-		// 1. Thread A (Fork) is active. It runs "A" then "done". CanPopThread=True. Pops.
-		// 2. Main (Original) works. Resumes at instruction after Divert?
-		//    The instruction after Divert is "done".
-		//    Main runs "done". CanPopThread=False. Stops.
-		// Result: "A".
+		// Main forks to ThreadTarget. Main continues and hits "done".
+		// ThreadTarget runs "A", then hits "done".
+		// "done" logic: if CanPopThread, Pop; else Stop.
 		//
-		// Wait, user's previous comment said "AA" because Main continues.
-		// But in this logic, Main continues AFTER the divert.
-		// In previous broken logic (ZombieThread test), Main executed "A" too.
-		// Now we prevent that. So we expect "A".
-		// Or do we?
-		// Prompt said: "Expected Output: ...Start.Thread A.Thread B.End."
-		// For Zombie test, if structure is `[ thread->T, done, T:[A] ]`
+		// 1. Thread A (Fork) runs "A" then "done". CanPopThread=True (if forked correctly). Pops.
+		// 2. Main runs "done". CanPopThread=False. Stops story.
+		// Result: "A".
+
 		// Result should be "A".
 
 		if text != "A" {

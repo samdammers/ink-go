@@ -46,8 +46,8 @@ func TestApproximatePathResolution(t *testing.T) {
 	// In Ink, 0.0 is context, and c-0 is looked up in the container that *holds* 0.0 (Inner).
 
 	targetPathStr := "0.0.c-0"
-	// Note: The original issue description said "Path: 0.0.c-0".
-	// Only relative paths start with dots usually, but let's test absolute for clarity first.
+	// The original issue description specified "Path: 0.0.c-0".
+	// While typically relative paths start with dots, we test absolute path resolution here for clarity.
 
 	targetPath := NewPathFromString(targetPathStr)
 

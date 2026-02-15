@@ -68,18 +68,14 @@ func TestPointer(t *testing.T) {
 		// If root has no parent, its path might be empty or specific string logic.
 		// Let's rely on string representation.
 
-		// Wait, path calculation in Container relies on parent.
 		// Since root has no parent, its path is ".".
 
-		// PathByAppendingComponent should add index.
-		// So result should be .0
+		// PathByAppendingComponent should add index, so result should be ".0".
 
 		str := path.String()
-		// Adjust expectation based on implementation details of Path/Container
 		// If path is relative, it starts with dot.
 		// ".0" seems likely.
 
-		// Checking that it's not nil at least.
 		if path == nil {
 			t.Error("Expected path to be non-nil")
 		}
