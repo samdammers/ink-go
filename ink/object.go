@@ -43,6 +43,8 @@ func (r *BaseRuntimeObject) SetParent(parent RuntimeObject) {
 
 // GetPath gets the path of this object in the story hierarchy.
 // It is lazily initialized.
+//
+//nolint:dupl // Logic matches Container.GetPath but operates on *BaseRuntimeObject.
 func (r *BaseRuntimeObject) GetPath() *Path {
 	if r.path == nil {
 		if r.parent == nil {
