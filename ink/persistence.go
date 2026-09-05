@@ -302,40 +302,43 @@ func inkListToDto(l *ListValue) map[string]interface{} {
 	return res
 }
 
+// noOpCommandString is the serialized token for CommandTypeNoOp, shared with json.go.
+const noOpCommandString = "nop"
+
 func controlCommandToString(cType CommandType) string {
 	if int(cType) >= 1 && int(cType) < len(controlCommandNames) {
 		return controlCommandNames[int(cType)]
 	}
-	return "nop"
+	return noOpCommandString
 }
 
 // controlCommandNames mapping mirroring Java implementation
 var controlCommandNames = [...]string{
-	"",          // 0: NotSet maps to index -1 in java which is invalid access
-	"ev",        // 1: EvalStart
-	"out",       // 2: EvalOutput
-	"/ev",       // 3: EvalEnd
-	"du",        // 4: Duplicate
-	"pop",       // 5: PopEvaluatedValue
-	"~ret",      // 6: PopFunction
-	"->->",      // 7: PopTunnel
-	"str",       // 8: BeginString
-	"/str",      // 9: EndString
-	"nop",       // 10: NoOp
-	"choiceCnt", // 11: ChoiceCount
-	"turn",      // 12: Turns
-	"turns",     // 13: TurnsSince
-	"readc",     // 14: ReadCount
-	"rnd",       // 15: Random
-	"srnd",      // 16: SeedRandom
-	"visit",     // 17: VisitIndex
-	"seq",       // 18: SequenceShuffleIndex
-	"thread",    // 19: StartThread
-	"done",      // 20: Done
-	"end",       // 21: End
-	"listInt",   // 22: ListFromInt
-	"range",     // 23: ListRange
-	"lrnd",      // 24: ListRandom
-	"#",         // 25: BeginTag
-	"/#",        // 26: EndTag
+	"",                // 0: NotSet maps to index -1 in java which is invalid access
+	"ev",              // 1: EvalStart
+	"out",             // 2: EvalOutput
+	"/ev",             // 3: EvalEnd
+	"du",              // 4: Duplicate
+	"pop",             // 5: PopEvaluatedValue
+	"~ret",            // 6: PopFunction
+	"->->",            // 7: PopTunnel
+	"str",             // 8: BeginString
+	"/str",            // 9: EndString
+	noOpCommandString, // 10: NoOp
+	"choiceCnt",       // 11: ChoiceCount
+	"turn",            // 12: Turns
+	"turns",           // 13: TurnsSince
+	"readc",           // 14: ReadCount
+	"rnd",             // 15: Random
+	"srnd",            // 16: SeedRandom
+	"visit",           // 17: VisitIndex
+	"seq",             // 18: SequenceShuffleIndex
+	"thread",          // 19: StartThread
+	"done",            // 20: Done
+	"end",             // 21: End
+	"listInt",         // 22: ListFromInt
+	"range",           // 23: ListRange
+	"lrnd",            // 24: ListRandom
+	"#",               // 25: BeginTag
+	"/#",              // 26: EndTag
 }
