@@ -188,7 +188,7 @@ func parseControlCommand(v string) (RuntimeObject, bool) {
 		return NewControlCommand(CommandTypeBeginString), true
 	case "/str":
 		return NewControlCommand(CommandTypeEndString), true
-	case "nop":
+	case noOpCommandString:
 		return NewControlCommand(CommandTypeNoOp), true
 	case "thread":
 		return NewControlCommand(CommandTypeStartThread), true
