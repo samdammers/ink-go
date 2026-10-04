@@ -15,10 +15,6 @@
   &nbsp; <a href="https://pkg.go.dev/github.com/samdammers/ink-go">
     <img src="https://pkg.go.dev/badge/github.com/samdammers/ink-go.svg" alt="Go Reference">
   </a>
-  &nbsp;
-  <a href="https://goreportcard.com/report/github.com/samdammers/ink-go">
-    <img src="https://goreportcard.com/badge/github.com/samdammers/ink-go" alt="Go Report Card">
-  </a>
   </p>
 
 ---
